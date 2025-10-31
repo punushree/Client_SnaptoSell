@@ -59,6 +59,7 @@
 .controls {
   margin-top: var(--mantine-spacing-lg);
   display: flex;
+  gap: 10px;
   justify-content: center;
 
   @media (max-width: $mantine-breakpoint-xs) {

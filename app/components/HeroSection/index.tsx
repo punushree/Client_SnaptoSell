@@ -1,6 +1,7 @@
 import { Button, Center, Chip, Container, Text, Title } from "@mantine/core";
 import { Dots } from "./Dots";
 import classes from "./index.module.css";
+import { Link } from "react-router";
 
 const HeroSection = () => {
   return (
@@ -32,13 +33,16 @@ const HeroSection = () => {
             <Button
               className={classes.control}
               size="lg"
+              component={Link}
               variant="default"
               color="gray"
+              to={"https://tally.so/r/mJ5Rkz"}
+              target="_blank"
             >
-              Book a demo
+              Contact Us
             </Button>
-            <Button className={classes.control} size="lg">
-              Purchase a license
+            <Button className={classes.control} size="lg" component={Link} to={'/detect'}>
+              Try Now
             </Button>
           </div>
         </div>

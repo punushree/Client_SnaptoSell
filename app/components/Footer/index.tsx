@@ -63,7 +63,7 @@ const Footer = () => {
       <Container className={classes.inner}>
         <div className={classes.logo}>
           <Image
-            src="/snaptosell-light.png"
+            src="/assets/snaptosell-light.png"
             alt=""
             className={classes.headerLogo}
           />

@@ -1,5 +1,6 @@
 import "~/styles/globals.css";
 import "@mantine/core/styles.css";
+import "@mantine/nprogress/styles.css";
 
 import {
   isRouteErrorResponse,
@@ -8,6 +9,9 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useFetchers,
+  useNavigation,
+  type MetaArgs,
 } from "react-router";
 import {
   ColorSchemeScript,
@@ -16,6 +20,20 @@ import {
 } from "@mantine/core";
 
 import type { Route } from "./+types/root";
+import { NavigationProgress, nprogress } from "@mantine/nprogress";
+import { useEffect } from "react";
+import NotFoundPage from "~/pages/404/page";
+
+export function meta({}: MetaArgs) {
+  return [
+    { title: "SnapToSell - Never Get Scammed on Marketplace Again" },
+    {
+      name: "description",
+      content:
+        "AI-powered fraud detection meets instant item pricing. Sell safely, sell smarter, sell faster.",
+    },
+  ];
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -41,16 +59,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <MantineProvider>{children}</MantineProvider>
+        <MantineProvider>
+          <NavigationProgress />
+          {children}
+        </MantineProvider>
         <ScrollRestoration />
         <Scripts />
       </body>
     </html>
   );
-}
-
-export default function App() {
-  return <Outlet />;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
@@ -69,6 +86,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     stack = error.stack;
   }
 
+  if (isRouteErrorResponse(error) && error.status === 404) {
+    return <NotFoundPage />;
+  }
+
   return (
     <main className="pt-16 p-4 container mx-auto">
       <h1>{message}</h1>
@@ -80,4 +101,18 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       )}
     </main>
   );
+}
+
+export default function App() {
+  const navigation = useNavigation();
+  const fetchers = useFetchers();
+  useEffect(() => {
+    const fetchersIdle = fetchers.every((f) => f.state === "idle");
+    if (navigation.state === "idle" && fetchersIdle) {
+      nprogress.complete();
+    } else {
+      nprogress.start();
+    }
+  }, [navigation.state, fetchers]);
+  return <Outlet />;
 }
