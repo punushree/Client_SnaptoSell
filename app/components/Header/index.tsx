@@ -24,7 +24,7 @@ const Header = () => {
   }, [location.key]);
 
   return (
-    <Box pb={50} className={classes.sticky}>
+    <Box className={classes.sticky} mb={10}>
       <header className={classes.header}>
         <Group justify="space-between" h="100%">
           <Link to="/">
@@ -35,7 +35,7 @@ const Header = () => {
             />
           </Link>
 
-          <Group h="100%" gap={0} visibleFrom="sm">
+          <Group h="100%" gap={0} visibleFrom="md">
             <Link to="/" className={classes.link}>
               Home
             </Link>
@@ -53,7 +53,7 @@ const Header = () => {
             </Link>
           </Group>
 
-          <Group visibleFrom="sm">
+          <Group visibleFrom="md">
             <Button variant="default" component={Link} to={"/sign-in"}>
               Sign In
             </Button>
@@ -65,7 +65,7 @@ const Header = () => {
           <Burger
             opened={drawerOpened}
             onClick={toggleDrawer}
-            hiddenFrom="sm"
+            hiddenFrom="md"
           />
         </Group>
       </header>

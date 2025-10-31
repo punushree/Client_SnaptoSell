@@ -146,8 +146,11 @@ const Page: FC = () => {
 
   // Effect to attach stream to video element when it becomes available
   useEffect(() => {
-    if (stream && videoRef.current && !videoRef.current.srcObject) {
-      videoRef.current.srcObject = stream;
+    if (stream && videoRef.current) {
+      // Always update srcObject when stream changes (for camera switching)
+      if (videoRef.current.srcObject !== stream) {
+        videoRef.current.srcObject = stream;
+      }
       
       // Wait for video to start playing
       const handleCanPlay = () => {
@@ -173,9 +176,12 @@ const Page: FC = () => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopCamera();
+      // Stop all tracks when component unmounts (user navigates away)
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
     };
-  }, []);
+  }, [stream]);
 
   return (
     <Container size="lg" py="xs">
