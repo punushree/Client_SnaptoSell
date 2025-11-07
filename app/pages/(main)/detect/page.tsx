@@ -228,16 +228,16 @@ const handleSubmit = () => {
                   <Button leftSection={<IconCapture />} onClick={captureImage} disabled={!isVideoReady}>
                     Capture
                   </Button>
-                  <Button variant="outline" onClick={stopCamera}>
-                    Cancel
-                  </Button>
 
-
-                  <Button variant="light" leftSection={<IconUpload />} onClick={() => fileRef.current?.click()}>
+                   <Button variant="light" leftSection={<IconUpload />} onClick={() => fileRef.current?.click()}>
                     Upload
                   </Button>
                   <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileUpload} />
-                </Group>
+  
+                  <Button variant="outline" onClick={stopCamera}>
+                    Cancel
+                  </Button>
+                   </Group>
 
               </>
             )}
