@@ -66,8 +66,9 @@ const Page = () => {
       videoRef.current.srcObject = null;
     }
     setIsVideoReady(false);
-  };
+    setCapturedImages([]); //Clear all images
 
+  };
 
   // Capture Image (Keep camera ON)
   // const captureImage = () => {
