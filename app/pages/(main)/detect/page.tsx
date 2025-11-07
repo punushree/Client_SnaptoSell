@@ -1,85 +1,60 @@
 import { useRef, useState, useEffect } from "react";
-import type { FC } from "react";
 import {
-  Container,
-  Paper,
-  Stack,
-  Title,
-  Text,
-  Button,
-  Group,
-  Center,
-  Alert,
-  ActionIcon,
-  Box,
-  Image,
+  Container, Paper, Stack, Title, Text, Button, Group, Center, Alert,
+  ActionIcon, Box, Image, SimpleGrid, Card
 } from "@mantine/core";
 import {
-  IconCamera,
-  IconCameraRotate,
-  IconCapture,
-  IconAlertCircle,
-  IconCheck,
+  IconCamera, IconCameraRotate, IconCapture, IconAlertCircle,
+  IconTrash, IconUpload
 } from "@tabler/icons-react";
 
-const Page: FC = () => {
+const Page = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedImages, setCapturedImages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [isMobile, setIsMobile] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
 
-  // Detect if device is mobile
+  // Detect mobile
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      );
-      setIsMobile(mobile);
-    };
-    checkMobile();
+    setIsMobile(/Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(navigator.userAgent));
   }, []);
 
   // Start camera
   const startCamera = async (mode: "user" | "environment" = facingMode) => {
     try {
       setIsLoading(true);
-      setError(null);
-      setIsVideoReady(false);
+      if (stream) stream.getTracks().forEach((t) => t.stop());
 
-      // Stop existing stream if any
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
-
-      // For desktop/laptop, always use "user" (front camera/webcam)
       const actualMode = isMobile ? mode : "user";
 
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: { ideal: actualMode },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      };
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: actualMode } }
+      });
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      setStream(mediaStream);
       setFacingMode(actualMode);
-      setStream(mediaStream); // This will trigger video element to render
       setIsLoading(false);
     } catch (err) {
-      console.error("Error accessing camera:", err);
-      setError(
-        "Unable to access camera. Please ensure you have granted camera permissions."
-      );
+      setError("Camera permission blocked. Please allow access.");
       setIsLoading(false);
     }
   };
+
+  // Bind stream to <video>
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+
+      videoRef.current.onloadedmetadata = () => setIsVideoReady(true);
+    }
+  }, [stream]);
 
   // Stop camera
   const stopCamera = () => {
@@ -93,13 +68,36 @@ const Page: FC = () => {
     setIsVideoReady(false);
   };
 
-  // Switch camera (mobile only)
-  const switchCamera = () => {
-    const newMode = facingMode === "user" ? "environment" : "user";
-    startCamera(newMode);
-  };
 
-  // Capture image
+  // Capture Image (Keep camera ON)
+  // const captureImage = () => {
+  //   if (!videoRef.current || !canvasRef.current) return;
+
+  //   const video = videoRef.current;
+  //   const canvas = canvasRef.current;
+  //   const ctx = canvas.getContext("2d")!;
+
+  //   canvas.width = video.videoWidth;
+  //   canvas.height = video.videoHeight;
+
+  //   if (facingMode === "user") {
+  //     ctx.translate(canvas.width, 0);
+  //     ctx.scale(-1, 1);
+  //   }
+
+  //   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  //   const url = canvas.toDataURL("image/jpeg", 0.95);
+
+  //   setCapturedImages((prev) =>
+  //     prev.length < 5 ? [...prev, url] : prev
+  //   );
+
+
+
+  // };
+
+   // Capture image
   const captureImage = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
@@ -119,74 +117,43 @@ const Page: FC = () => {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         const imageDataUrl = canvas.toDataURL("image/jpeg", 0.95);
-        setCapturedImage(imageDataUrl);
-        stopCamera();
+        //setCapturedImage(imageDataUrl);
+          setCapturedImages((prev) =>
+      prev.length < 5 ? [...prev, imageDataUrl] : prev
+    );    
       }
     }
+           //stopCamera();
   };
 
-  // Retake photo
-  const retakePhoto = () => {
-    setCapturedImage(null);
-    startCamera();
+  // Delete image
+  const deleteImage = (index: number) =>
+    setCapturedImages((prev) => prev.filter((_, i) => i !== index));
+
+  // Upload from gallery
+  const handleFileUpload = (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setCapturedImages((prev) =>
+      prev.length < 5 ? [...prev, url] : prev
+    );
   };
 
-  // Handle upload/process
-  const handleProcess = async () => {
-    if (!capturedImage) return;
+  // Switch camera
+  const switchCamera = () =>
+    startCamera(facingMode === "user" ? "environment" : "user");
 
-    // TODO: Implement your API call here to process the image
-    console.log("Processing image for product detection...");
-    // Example:
-    // const response = await fetch('/api/detect-product', {
-    //   method: 'POST',
-    //   body: JSON.stringify({ image: capturedImage }),
-    // });
-  };
 
-  // Effect to attach stream to video element when it becomes available
-  useEffect(() => {
-    if (stream && videoRef.current) {
-      // Always update srcObject when stream changes (for camera switching)
-      if (videoRef.current.srcObject !== stream) {
-        videoRef.current.srcObject = stream;
-      }
-      
-      // Wait for video to start playing
-      const handleCanPlay = () => {
-        setIsVideoReady(true);
-      };
-      
-      videoRef.current.addEventListener('canplay', handleCanPlay);
-      
-      // Fallback timeout
-      const timeout = setTimeout(() => {
-        setIsVideoReady(true);
-      }, 1000);
-      
-      return () => {
-        if (videoRef.current) {
-          videoRef.current.removeEventListener('canplay', handleCanPlay);
-        }
-        clearTimeout(timeout);
-      };
-    }
-  }, [stream]);
+const handleSubmit = () => {
+  alert("✅ Images submitted successfully!");
+};
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // Stop all tracks when component unmounts (user navigates away)
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, [stream]);
 
   return (
     <Container size="lg" py="xs">
       <Stack gap="lg">
-        <div>
+         <div>
           <Title order={1} mb="xs">
             Snap to Detect Product
           </Title>
@@ -196,159 +163,108 @@ const Page: FC = () => {
         </div>
 
         {error && (
-          <Alert
-            icon={<IconAlertCircle size={16} />}
-            title="Error"
-            color="red"
-            onClose={() => setError(null)}
-            withCloseButton
-          >
-            {error}
-          </Alert>
+          <Alert icon={<IconAlertCircle />} color="red">{error}</Alert>
         )}
 
         <Paper shadow="sm" p="md" withBorder>
           <Stack gap="md">
-            {!stream && !capturedImage && (
+
+            {/* Camera UI */}
+            {!stream && (
               <Center py="xl">
-                <Stack align="center" gap="md">
-                  <IconCamera size={64} stroke={1.5} />
-                  <Button
-                    size="lg"
-                    leftSection={<IconCamera size={20} />}
-                    onClick={() => startCamera()}
-                    loading={isLoading}
-                  >
-                    Start Camera
-                  </Button>
-                </Stack>
+                <Button leftSection={<IconCamera />} onClick={() => startCamera()} loading={isLoading}>
+                  Start Camera
+                </Button>
               </Center>
             )}
 
-            {stream && !capturedImage && (
+            {stream && (
               <>
-                <Box
-                  style={{
-                    position: "relative",
-                    width: "100%",
-                    minHeight: "400px",
-                    overflow: "hidden",
-                    borderRadius: "8px",
-                    backgroundColor: "#000",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {!isVideoReady && (
-                    <Text c="white" size="sm">
-                      Loading camera...
-                    </Text>
-                  )}
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
+                <Box style={{
+                  position: "relative",
+                  width: "100%",
+                  minHeight: 350,
+                  background: "#000",
+                  borderRadius: 8,
+                  overflow: "hidden",
+                }}>
+                  {!isVideoReady && <Text c="white">Loading camera...</Text>}
+                  <video ref={videoRef} autoPlay playsInline muted
                     style={{
                       width: "100%",
-                      height: "auto",
-                      maxHeight: "80vh",
                       display: isVideoReady ? "block" : "none",
                       transform: facingMode === "user" ? "scaleX(-1)" : "none",
                     }}
                   />
-
-                  {isMobile && isVideoReady && (
+                  {isMobile && (
                     <ActionIcon
-                      size="lg"
-                      variant="filled"
                       color="blue"
-                      style={{
-                        position: "absolute",
-                        top: "16px",
-                        right: "16px",
-                      }}
+                      variant="filled"
                       onClick={switchCamera}
+                      style={{ position: "absolute", top: 12, right: 12 }}
                     >
-                      <IconCameraRotate size={20} />
+                      <IconCameraRotate />
                     </ActionIcon>
                   )}
                 </Box>
 
-                <Group justify="center" gap="md">
-                  <Button
-                    size="lg"
-                    leftSection={<IconCapture size={20} />}
-                    onClick={captureImage}
-                    disabled={!isVideoReady}
-                  >
-                    Capture Photo
+                {/* <Group justify="center">
+                  <Button leftSection={<IconCapture />} onClick={captureImage} disabled={!isVideoReady}>
+                    Capture
                   </Button>
-                  <Button size="lg" variant="outline" onClick={stopCamera}>
+
+                  <Button variant="outline" onClick={() => stream?.getTracks().forEach((t) => t.stop())}>
+                    Stop
+                  </Button>
+
+                  <Button variant="light" leftSection={<IconUpload />} onClick={() => fileRef.current?.click()}>
+                    Upload
+                  </Button>
+                  <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileUpload} />
+                </Group> */}
+
+                <Group justify="center">
+                  <Button leftSection={<IconCapture />} onClick={captureImage} disabled={!isVideoReady}>
+                    Capture
+                  </Button>
+                  <Button variant="outline" onClick={stopCamera}>
                     Cancel
                   </Button>
-                </Group>
-              </>
-            )}
 
-            {capturedImage && (
-              <>
-                <Box
-                  style={{
-                    position: "relative",
-                    width: "100%",
-                    overflow: "hidden",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <Image
-                    src={capturedImage}
-                    alt="Captured product"
-                    style={{
-                      width: "100%",
-                      height: "auto",
-                      display: "block",
-                    }}
-                  />
-                </Box>
 
-                <Group justify="center" gap="md">
-                  <Button
-                    size="lg"
-                    leftSection={<IconCheck size={20} />}
-                    onClick={handleProcess}
-                  >
-                    Detect Product
+                  <Button variant="light" leftSection={<IconUpload />} onClick={() => fileRef.current?.click()}>
+                    Upload
                   </Button>
-                  <Button size="lg" variant="outline" onClick={retakePhoto}>
-                    Retake Photo
-                  </Button>
+                  <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileUpload} />
                 </Group>
+
               </>
             )}
 
             <canvas ref={canvasRef} style={{ display: "none" }} />
-          </Stack>
-        </Paper>
 
-        <Paper p="md" withBorder>
-          <Stack gap="xs">
-            <Text fw={500} size="sm">
-              Tips for best results:
-            </Text>
-            <Text size="sm" c="dimmed">
-              • Ensure good lighting
-            </Text>
-            <Text size="sm" c="dimmed">
-              • Keep the product centered in frame
-            </Text>
-            <Text size="sm" c="dimmed">
-              • Avoid blurry images
-            </Text>
-            <Text size="sm" c="dimmed">
-              • Include the entire product in the shot
-            </Text>
+            {/* Preview Images */}
+            {capturedImages.length > 0 && (
+              <SimpleGrid cols={3} spacing="md">
+                {capturedImages.map((img, index) => (
+                  <Card key={index} p={0} radius="md" withBorder style={{ position: "relative" }}>
+                    <Image src={img} height={120} fit="cover" />
+                    <ActionIcon color="red" variant="filled" radius="xl" p={4}
+                      style={{ position: "absolute", top: 6, right: 6 }}
+                      onClick={() => deleteImage(index)}
+                    >
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  </Card>
+                ))}
+              </SimpleGrid>
+            )}
+
+            {capturedImages.length >= 3 && (
+              <Button color="green" fullWidth onClick={handleSubmit}>
+                Submit Images ({capturedImages.length}/5)
+              </Button>
+            )}
           </Stack>
         </Paper>
       </Stack>
