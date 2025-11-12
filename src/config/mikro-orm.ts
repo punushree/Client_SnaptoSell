@@ -5,6 +5,7 @@ import {
     MySqlDriver,
     ReflectMetadataProvider,
 } from "@mikro-orm/mysql";
+import { ProductDetection } from "~/lib/server/entities/product-detection.entity.js";
 
 dotenv.config({ debug: true});
 
@@ -16,7 +17,7 @@ const MikroORMOptions: Options = {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     port: Number(process.env.DB_PORT || 3306),
-    entities: ["./src/lib/server/entities"],
+    entities: [ProductDetection],
     debug: true,
     extensions: [EntityGenerator],
     allowGlobalContext: true,

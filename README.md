@@ -101,3 +101,5 @@ This template comes with [Tailwind CSS](https://tailwindcss.com/) already config
 ---
 
 Built with ❤️ using React Router.
+
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 726591791633.dkr.ecr.us-east-1.amazonaws.com
