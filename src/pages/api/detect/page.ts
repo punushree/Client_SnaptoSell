@@ -85,6 +85,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       status: 'pending',
       inputImages: [],
       createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     // Upload images to S3

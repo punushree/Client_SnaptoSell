@@ -55,15 +55,9 @@ export class ProductDetection {
   @Property({ type: 'text', nullable: true })
   errorMessage?: string;
 
-  @Property({ 
-    type: 'date',
-    onCreate: () => new Date() 
-  })
+  @Property({ defaultRaw: 'CURRENT_TIMESTAMP', onCreate: () => new Date() })
   createdAt: Date = new Date();
 
-  @Property({ 
-    type: 'date',
-    onUpdate: () => new Date() 
-  })
-  updatedAt?: Date;
+  @Property({ defaultRaw: 'CURRENT_TIMESTAMP', onUpdate: () => new Date() })
+  updatedAt: Date = new Date();
 }
