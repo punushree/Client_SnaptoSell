@@ -6,7 +6,7 @@ export const pageRouterStyle: Options = {
   print: "no",
   layoutFileName: "_layout",
   routeFileNames: ["page"],
-  extensions: [".tsx"],
+  extensions: [".tsx",".ts"],
   routeFileNameOnly: false,
 };
 

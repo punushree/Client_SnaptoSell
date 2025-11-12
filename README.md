@@ -24,6 +24,22 @@ Install the dependencies:
 npm install
 ```
 
+### Environment Configuration
+
+Copy the example environment file and configure your environment variables:
+
+```bash
+cp .env.example .env
+```
+
+Required environment variables:
+
+- `OPENAI_API_KEY` - Your OpenAI API key for product detection
+- `AWS_REGION` - AWS region (e.g., us-east-1)
+- `AWS_ACCESS_KEY_ID` - AWS access key for S3 uploads
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key for S3 uploads
+- `AWS_S3_BUCKET_NAME` - S3 bucket name for storing product images
+
 ### Development
 
 Start the development server with HMR:
