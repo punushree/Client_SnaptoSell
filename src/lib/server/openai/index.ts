@@ -154,9 +154,9 @@ function parseOpenAIResponse(responseText: string): {
 } {
   // Try to extract JSON block (look for first { to last })
   const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-  
+  //console.log('====='+responseText)
   if (!jsonMatch) {
-    throw new Error('Could not find JSON in OpenAI response');
+    throw new Error('Could not parse images');
   }
 
   const jsonText = jsonMatch[0];
