@@ -102,4 +102,4 @@ This template comes with [Tailwind CSS](https://tailwindcss.com/) already config
 
 Built with ❤️ using React Router.
 
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 726591791633.dkr.ecr.us-east-1.amazonaws.com && docker buildx build --platform linux/amd64 -t fastify-app:latest --load . && docker tag fastify-app:latest 252366103189.dkr.ecr.ap-south-1.amazonaws.com/fastify-app:latest && docker push 252366103189.dkr.ecr.ap-south-1.amazonaws.com/fastify-app:latest
+aws ecr get-login-password --region us-east-1 --profile snaptosell | docker login --username AWS --password-stdin 726591791633.dkr.ecr.us-east-1.amazonaws.com && docker buildx build --platform linux/amd64 --provenance=false -t snaptosell/dev:latest --load . && docker tag snaptosell/dev:latest 726591791633.dkr.ecr.us-east-1.amazonaws.com/snaptosell/dev:latest && docker push 726591791633.dkr.ecr.us-east-1.amazonaws.com/snaptosell/dev:latest
