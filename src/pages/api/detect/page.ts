@@ -80,9 +80,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const em = orm.em.fork();
 
     // Create initial detection record
-    const detection = new ProductDetection();
-    detection.inputDescription = description.trim();
-    detection.status = 'processing';
+    const detection = em.create(ProductDetection, {
+      inputDescription: description.trim(),
+      status: 'pending',
+      inputImages: [],
+      createdAt: new Date(),
+    });
 
     // Upload images to S3
     console.log(`Uploading ${files.length} images to S3...`);
