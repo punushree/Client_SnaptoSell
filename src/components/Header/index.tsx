@@ -41,8 +41,8 @@ const Header = () => {
             </Link>
 
             <Link to="/feature" className={classes.link}>Features</Link>
-            <Link to="/howItWorks" className={classes.link}>How It Works</Link>
-            <Link to="/scamDatabase" className={classes.link}>Scam Database</Link>
+            <Link to="/how-it-works" className={classes.link}>How It Works</Link>
+            <Link to="/scam-database" className={classes.link}>Scam Database</Link>
             <Link to="/waitlist" className={classes.link}>Join Waitlist</Link>
       
           </Group>
