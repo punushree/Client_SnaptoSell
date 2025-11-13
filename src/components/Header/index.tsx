@@ -39,19 +39,14 @@ const Header = () => {
             <Link to="/" className={classes.link}>
               Home
             </Link>
-            <Link to="#features" className={classes.link}>
-              Features
-            </Link>
-            <Link to="#how-it-works" className={classes.link}>
-              How It Works
-            </Link>
-            <Link to="#scam-database" className={classes.link}>
-              Scam Database
-            </Link>
-            <Link to="#waitlist" className={classes.link}>
-              Join Waitlist
-            </Link>
+
+            <Link to="/feature" className={classes.link}>Features</Link>
+            <Link to="/howItWorks" className={classes.link}>How It Works</Link>
+            <Link to="/scamDatabase" className={classes.link}>Scam Database</Link>
+            <Link to="/waitlist" className={classes.link}>Join Waitlist</Link>
+      
           </Group>
+
 
           <Group visibleFrom="md">
             <Button variant="default" component={Link} to={"/sign-in"}>
@@ -80,25 +75,30 @@ const Header = () => {
         zIndex={1000000}
       >
         <ScrollArea h="calc(100vh - 80px" mx="-md">
-          <Divider my="sm" />
+          {/*<Divider my="sm" />
 
-          <Link to="/" className={classes.link}>
+           <Link to="/" className={classes.link}>
             Home
           </Link>
-          <Link to="#features" className={classes.link}>
+          <Link to="/features" className={classes.link}>
             Features
           </Link>
-          <Link to="#how-it-works" className={classes.link}>
+          <Link to="/how-it-works" className={classes.link}>
             How It Works
           </Link>
-          <Link to="#scam-database" className={classes.link}>
+          <Link to="/scam-database" className={classes.link}>
             Scam Database
           </Link>
-          <Link to="#waitlist" className={classes.link}>
+          <Link to="/waitlist" className={classes.link}>
             Join Waitlist
-          </Link>
+          </Link> */}
 
-          <Divider my="sm" />
+          {/* <Link to="/feature" className={classes.link}>Features</Link>
+          <Link to="/howItWorks" className={classes.link}>How It Works</Link>
+          <Link to="/scamDatabase" className={classes.link}>Scam Database</Link>
+          <Link to="/waitlist" className={classes.link}>Join Waitlist</Link>
+
+          <Divider my="sm" /> */}
 
           <Group justify="center" grow pb="xl" px="md">
             <Button variant="default" component={Link} to={"/sign-in"}>

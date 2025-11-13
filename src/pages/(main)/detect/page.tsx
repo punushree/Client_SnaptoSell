@@ -65,6 +65,13 @@ const Page = () => {
     }
   }, [stream]);
 
+  // Scroll to top when result (success or error) is shown
+  useEffect(() => {
+    if (submitSuccess || submitError) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [submitSuccess, submitError]);
+
   const stopCamera = () => {
     if (stream) stream.getTracks().forEach((track) => track.stop());
     setStream(null);
