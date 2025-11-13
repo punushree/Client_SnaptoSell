@@ -26,19 +26,44 @@ npm install
 
 ### Environment Configuration
 
-Copy the example environment file and configure your environment variables:
+Copy the environment template file and configure your environment variables:
 
 ```bash
-cp .env.example .env
+cp env.template .env
 ```
 
 Required environment variables:
 
+**Database Configuration (choose one):**
+- `DATABASE_URL` - MySQL connection string (e.g., `mysql://user:password@host:port/database`)
+- OR use individual parameters:
+  - `DB_HOST` - Database host (default: localhost)
+  - `DB_PORT` - Database port (default: 3306)
+  - `DB_USER` - Database user
+  - `DB_PASSWORD` - Database password
+  - `DB_NAME` - Database name
+
+**BetterAuth Configuration:**
+- `BETTER_AUTH_SECRET` - Secret key for BetterAuth (minimum 32 characters, change in production!)
+- `BETTER_AUTH_URL` - Base URL of your application (default: http://localhost:5173)
+
+**Other Services:**
 - `OPENAI_API_KEY` - Your OpenAI API key for product detection
 - `AWS_REGION` - AWS region (e.g., us-east-1)
 - `AWS_ACCESS_KEY_ID` - AWS access key for S3 uploads
 - `AWS_SECRET_ACCESS_KEY` - AWS secret key for S3 uploads
 - `AWS_S3_BUCKET_NAME` - S3 bucket name for storing product images
+
+### Database Setup
+
+BetterAuth will automatically create and manage the required authentication tables (`user`, `session`, `account`, `verification`) when you first run the application. No manual migration is needed for these tables.
+
+For other tables (like `product_detection`), use MikroORM migrations:
+
+```bash
+npm run migration:create
+npm run migration:up
+```
 
 ### Development
 

@@ -1,0 +1,32 @@
+import { Entity, PrimaryKey, Property, OneToMany, Collection } from "@mikro-orm/core";
+import { v4 } from 'uuid';
+import { Session } from "./session.entity.js";
+
+@Entity({ tableName: 'user' })
+export class User {
+  @PrimaryKey({ type: 'varchar', length: 36 })
+  id: string = v4();
+
+  @Property({ type: 'varchar', length: 255, unique: true })
+  email!: string;
+
+  @Property({ type: 'boolean', default: false })
+  emailVerified: boolean = false;
+
+  @Property({ type: 'varchar', length: 255, nullable: true })
+  name?: string;
+
+  @Property({ type: 'varchar', length: 255, nullable: true })
+  image?: string;
+
+  @Property({ type: 'datetime', defaultRaw: 'CURRENT_TIMESTAMP', onCreate: () => new Date() })
+  createdAt: Date = new Date();
+
+  @Property({ type: 'datetime', defaultRaw: 'CURRENT_TIMESTAMP', onUpdate: () => new Date() })
+  updatedAt: Date = new Date();
+
+  @OneToMany(() => Session, session => session.user)
+  sessions = new Collection<Session>(this);
+
+ 
+}

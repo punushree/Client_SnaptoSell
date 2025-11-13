@@ -6,6 +6,8 @@ import {
     ReflectMetadataProvider,
 } from "@mikro-orm/mysql";
 import { ProductDetection } from "~/lib/server/entities/product-detection.entity.js";
+// Note: User, Session, Account, and Verification entities are managed by BetterAuth
+// They are kept in the codebase for reference but not included in MikroORM entities
 
 dotenv.config({ debug: true});
 

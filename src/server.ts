@@ -2,6 +2,7 @@
 import { RequestContext } from "@mikro-orm/core";
 import { createHonoServer } from "react-router-hono-server/node";
 import { getOrm } from "./lib/server/db/index.ts";
+import { auth } from "./lib/server/auth/index.ts";
 
 export default await createHonoServer({
     async configure(app) {
@@ -15,6 +16,11 @@ export default await createHonoServer({
                 return next()
             }
 
+        });
+        
+        // Mount BetterAuth routes
+        app.all("/api/auth/*", async (c) => {
+            return auth.handler(c.req.raw);
         });
     },
     useWebSocket: true,
