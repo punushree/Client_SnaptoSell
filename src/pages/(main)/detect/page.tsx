@@ -107,14 +107,29 @@ const Page = () => {
   const deleteImage = (index: number) =>
     setCapturedImages((prev) => prev.filter((_, i) => i !== index));
 
-  const handleFileUpload = (e: any) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setCapturedImages((prev) =>
-      prev.length < 5 ? [...prev, url] : prev
-    );
-  };
+  // const handleFileUpload = (e: any) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
+  //   const url = URL.createObjectURL(file);
+  //   setCapturedImages((prev) =>
+  //     prev.length < 5 ? [...prev, url] : prev
+  //   );
+  // };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+
+  const newImages = Array.from(files).map((file: File) =>
+    URL.createObjectURL(file)
+  );
+
+  setCapturedImages((prev) => {
+    const remainingSlots = 5 - prev.length;
+    return [...prev, ...newImages.slice(0, remainingSlots)];
+  });
+};
+
 
   // Convert image URL to File object
   const imageURLtoFile = async (imageUrl: string, filename: string): Promise<File> => {
@@ -547,6 +562,7 @@ const Page = () => {
                         ref={fileRef}
                         type="file"
                         accept="image/*"
+                        multiple
                         style={{ display: "none" }}
                         onChange={handleFileUpload}
                       />
