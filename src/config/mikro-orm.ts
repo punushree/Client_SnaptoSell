@@ -5,11 +5,15 @@ import {
     MySqlDriver,
     ReflectMetadataProvider,
 } from "@mikro-orm/mysql";
-import { ProductDetection } from "~/lib/server/entities/product-detection.entity.js";
+import { fileURLToPath } from 'url';
+import path from 'path';
 // Note: User, Session, Account, and Verification entities are managed by BetterAuth
 // They are kept in the codebase for reference but not included in MikroORM entities
 
-dotenv.config({ debug: true});
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ debug: true });
 
 const MikroORMOptions: Options = {
     metadataProvider: ReflectMetadataProvider,
@@ -19,7 +23,8 @@ const MikroORMOptions: Options = {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     port: Number(process.env.DB_PORT || 3306),
-    entities: [ProductDetection],
+    entities: [path.join(__dirname, '../lib/server/entities')],
+    entitiesTs: [path.join(__dirname, '../lib/server/entities')],
     debug: true,
     extensions: [EntityGenerator],
     allowGlobalContext: true,

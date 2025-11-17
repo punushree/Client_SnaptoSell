@@ -1,6 +1,6 @@
 import { MikroORM } from '@mikro-orm/core';
 import type { MySqlDriver } from '@mikro-orm/mysql';
-import MikroORMOptions from '~/config/mikro-orm';
+import MikroORMOptions from '@/config/mikro-orm';
 
 type OrmType = MikroORM<MySqlDriver>;
 

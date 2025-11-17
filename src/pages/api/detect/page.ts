@@ -12,10 +12,10 @@
  */
 
 import type { ActionFunctionArgs } from "react-router";
-import { getOrm } from "~/lib/server/db";
-import { ProductDetection } from "~/lib/server/entities/product-detection.entity";
-import { uploadMultipleToS3 } from "~/lib/server/s3";
-import { analyzeProductImages } from "~/lib/server/openai";
+import { getOrm } from "@/lib/server/db";
+import { ProductDetection } from "@/lib/server/entities/product-detection.entity";
+import { uploadMultipleToS3 } from "@/lib/server/s3";
+import { analyzeProductImages } from "@/lib/server/openai";
 
 interface UploadedFile {
   buffer: Buffer;
@@ -104,6 +104,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       inputDescription: trimmedDescription,
       status: 'pending',
       inputImages: [],
+      userConfirmed: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

@@ -55,6 +55,12 @@ export class ProductDetection {
   @Property({ type: 'text', nullable: true })
   errorMessage?: string;
 
+  @Property({ type: 'boolean', default: false })
+  userConfirmed: boolean = false;
+
+  @Property({ type: 'datetime', nullable: true })
+  confirmedAt?: Date;
+
   @Property({ defaultRaw: 'CURRENT_TIMESTAMP', onCreate: () => new Date() })
   createdAt: Date = new Date();
 

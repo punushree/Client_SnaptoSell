@@ -1,6 +1,7 @@
-import "~/styles/globals.css";
 import "@mantine/core/styles.css";
+import '@mantine/dropzone/styles.css';
 import "@mantine/nprogress/styles.css";
+import "@/styles/globals.css";
 
 import {
   isRouteErrorResponse,
@@ -22,7 +23,7 @@ import {
 import type { Route } from "./+types/root";
 import { NavigationProgress, nprogress } from "@mantine/nprogress";
 import { useEffect } from "react";
-import NotFoundPage from "~/pages/404/page";
+import NotFoundPage from "@/pages/404/page";
 
 export function meta({}: MetaArgs) {
   return [

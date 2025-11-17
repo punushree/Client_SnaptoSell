@@ -14,7 +14,7 @@ import {
 import { upperFirst } from "@mantine/hooks";
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
-import { authClient } from "~/lib/client/auth";
+import { authClient } from "@/lib/client/auth";
 
 const Register = () => {
   const [name, setName] = useState("");

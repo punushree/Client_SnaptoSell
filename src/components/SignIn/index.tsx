@@ -15,7 +15,7 @@ import {
 import classes from "./index.module.css";
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
-import { authClient } from "~/lib/client/auth";
+import { authClient } from "@/lib/client/auth";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");

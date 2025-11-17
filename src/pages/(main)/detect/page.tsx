@@ -2,13 +2,14 @@ import { useRef, useState, useEffect } from "react";
 import {
   Container, Paper, Stack, Title, Text, Button, Group, Center, Alert,
   ActionIcon, Box, Image, SimpleGrid, Card, Badge,
-  Modal
+  Modal, TextInput, Textarea, NumberInput, Divider
 } from "@mantine/core";
+import { Dropzone } from "@mantine/dropzone";
 import {
   IconCamera, IconCapture, IconAlertCircle,
-  IconTrash, IconUpload, IconX
+  IconTrash, IconUpload, IconX, IconCloudUpload
 } from "@tabler/icons-react";
-import SampleImages from "~/components/SampleImages";
+import SampleImages from "@/components/SampleImages";
 
 const Page = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -26,6 +27,20 @@ const Page = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<any>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [confirmationError, setConfirmationError] = useState<string | null>(null);
+  
+  // Form fields for editing product information
+  const [editedProduct, setEditedProduct] = useState({
+    identified_product: "",
+    brand: "",
+    color_variants: "",
+    size: "",
+    condition_rating: 0,
+    estimated_year: "",
+    short_description: ""
+  });
 
   const messages = [
     "1) Capture or upload Front image of device",
@@ -243,11 +258,17 @@ const Page = () => {
 
       if (result.success) {
         setSubmitSuccess(result.data);
-
-        // Optionally reset form
-        // setCapturedImages([]);
-        // setDetails("");
-        // stopCamera();
+        // Initialize form with detected data
+        setEditedProduct({
+          identified_product: result.data.analysis?.identified_product || "",
+          brand: result.data.analysis?.brand || "",
+          color_variants: result.data.analysis?.color_variants || "",
+          size: result.data.analysis?.size || "",
+          condition_rating: result.data.analysis?.condition_rating || 0,
+          estimated_year: result.data.analysis?.estimated_year || "",
+          short_description: result.data.analysis?.short_description || ""
+        });
+        setShowConfirmation(true);
       } else {
         throw new Error(result.error || 'Submission failed');
       }
@@ -265,14 +286,176 @@ const Page = () => {
     }
   };
 
+  const handleConfirmation = async (isCorrect: boolean) => {
+    if (!submitSuccess) return;
+
+    setIsConfirming(true);
+    setConfirmationError(null);
+
+    try {
+      const response = await fetch('/api/detect/confirm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uuid: submitSuccess.uuid,
+          isCorrect: isCorrect,
+          updatedData: isCorrect ? editedProduct : editedProduct
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.details || result.error || 'Failed to confirm product information');
+      }
+
+      // Show success state with confirmed data
+      setShowConfirmation(false);
+      setSubmitSuccess({
+        ...submitSuccess,
+        userConfirmed: result.data.userConfirmed
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setConfirmationError(errorMessage);
+      console.error('Confirmation error:', err);
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
   return (
     <Container size="full" p="md">
+      {/* Confirmation Modal - Ask user if detected information is correct */}
+      <Modal
+        opened={showConfirmation && !!submitSuccess}
+        onClose={() => setShowConfirmation(false)}
+        title={<Text fw={600} size="lg">Is this information correct?</Text>}
+        size="lg"
+        centered
+      >
+        <Stack gap="md">
+          {confirmationError && (
+            <Alert color="red" title="Error" onClose={() => setConfirmationError(null)} withCloseButton>
+              {confirmationError}
+            </Alert>
+          )}
+
+          <Paper p="md" radius="md" bg="blue.0" withBorder>
+            <Text fw={600} mb="md">Detected Information:</Text>
+            <Stack gap="xs">
+              <div>
+                <Text size="sm" c="dimmed">Product Name</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.identified_product || "N/A"}</Text>
+              </div>
+              <div>
+                <Text size="sm" c="dimmed">Brand</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.brand || "N/A"}</Text>
+              </div>
+              <div>
+                <Text size="sm" c="dimmed">Color</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.color_variants || "N/A"}</Text>
+              </div>
+              <div>
+                <Text size="sm" c="dimmed">Size</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.size || "N/A"}</Text>
+              </div>
+              <div>
+                <Text size="sm" c="dimmed">Condition Rating</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.condition_rating || "N/A"}/10</Text>
+              </div>
+              <div>
+                <Text size="sm" c="dimmed">Estimated Year</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.estimated_year || "N/A"}</Text>
+              </div>
+            </Stack>
+          </Paper>
+
+          <Stack gap="sm">
+            <Text fw={600} size="sm">Update Information (if needed):</Text>
+            
+            <TextInput
+              label="Product Name"
+              placeholder="e.g., iPhone 15 Pro"
+              value={editedProduct.identified_product}
+              onChange={(e) => setEditedProduct({...editedProduct, identified_product: e.target.value})}
+            />
+
+            <TextInput
+              label="Brand"
+              placeholder="e.g., Apple"
+              value={editedProduct.brand}
+              onChange={(e) => setEditedProduct({...editedProduct, brand: e.target.value})}
+            />
+
+            <TextInput
+              label="Color"
+              placeholder="e.g., Space Black"
+              value={editedProduct.color_variants}
+              onChange={(e) => setEditedProduct({...editedProduct, color_variants: e.target.value})}
+            />
+
+            <TextInput
+              label="Size"
+              placeholder="e.g., 6.1 inches"
+              value={editedProduct.size}
+              onChange={(e) => setEditedProduct({...editedProduct, size: e.target.value})}
+            />
+
+            <NumberInput
+              label="Condition Rating (1-10)"
+              placeholder="e.g., 8"
+              min={1}
+              max={10}
+              value={editedProduct.condition_rating}
+              onChange={(val) => setEditedProduct({...editedProduct, condition_rating: val as number})}
+            />
+
+            <TextInput
+              label="Estimated Year"
+              placeholder="e.g., 2023"
+              value={editedProduct.estimated_year}
+              onChange={(e) => setEditedProduct({...editedProduct, estimated_year: e.target.value})}
+            />
+
+            <Textarea
+              label="Description"
+              placeholder="Additional description"
+              value={editedProduct.short_description}
+              onChange={(e) => setEditedProduct({...editedProduct, short_description: e.target.value})}
+              rows={3}
+            />
+          </Stack>
+
+          <Group justify="flex-end" gap="sm">
+            <Button
+              variant="light"
+              onClick={() => handleConfirmation(true)}
+              loading={isConfirming}
+              disabled={isConfirming}
+            >
+              Yes, Correct
+            </Button>
+            <Button
+              color="yellow"
+              onClick={() => handleConfirmation(false)}
+              loading={isConfirming}
+              disabled={isConfirming}
+            >
+              Update Info
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
       {/* Show only Success UI when submitSuccess exists */}
       {submitSuccess ? (
         <Alert color="green" onClose={() => setSubmitSuccess(null)} withCloseButton>
           <div style={{ padding: "20px" }}>
             <Text fw={600} mb="xs">
-              Images submitted successfully!
+              {submitSuccess.userConfirmed ? "✓ Product Information Confirmed!" : "✓ Product Information Updated Successfully!"}
             </Text>
             <Text size="md" mb="xs">Status: {submitSuccess.status}</Text>
 
@@ -280,22 +463,40 @@ const Page = () => {
             {submitSuccess.analysis && (
               <Box mt="md">
                 <Text fw={600} size="md" mb="xs">
-                  Analysis Results:
+                  Final Product Details:
                 </Text>
-                <Text size="md">
-                  Product: {submitSuccess.analysis.identified_product || "N/A"}
-                </Text>
-                <Text size="md">
-                  Brand: {submitSuccess.analysis.brand || "N/A"}
-                </Text>
-                <Text size="md">
-                  Condition: {submitSuccess.analysis.condition_rating || "N/A"}
-                </Text>
-                {submitSuccess.analysis.short_description && (
-                  <Text size="md" mt="xs">
-                    {submitSuccess.analysis.short_description}
-                  </Text>
-                )}
+                <Stack gap="xs">
+                  <div>
+                    <Text size="sm" c="dimmed">Product Name</Text>
+                    <Text fw={500}>{submitSuccess.analysis.identified_product || "N/A"}</Text>
+                  </div>
+                  <div>
+                    <Text size="sm" c="dimmed">Brand</Text>
+                    <Text fw={500}>{submitSuccess.analysis.brand || "N/A"}</Text>
+                  </div>
+                  <div>
+                    <Text size="sm" c="dimmed">Color</Text>
+                    <Text fw={500}>{submitSuccess.analysis.color_variants || "N/A"}</Text>
+                  </div>
+                  <div>
+                    <Text size="sm" c="dimmed">Size</Text>
+                    <Text fw={500}>{submitSuccess.analysis.size || "N/A"}</Text>
+                  </div>
+                  <div>
+                    <Text size="sm" c="dimmed">Condition</Text>
+                    <Text fw={500}>{submitSuccess.analysis.condition_rating || "N/A"}/10</Text>
+                  </div>
+                  <div>
+                    <Text size="sm" c="dimmed">Estimated Year</Text>
+                    <Text fw={500}>{submitSuccess.analysis.estimated_year || "N/A"}</Text>
+                  </div>
+                  {submitSuccess.analysis.short_description && (
+                    <div>
+                      <Text size="sm" c="dimmed">Description</Text>
+                      <Text fw={500}>{submitSuccess.analysis.short_description}</Text>
+                    </div>
+                  )}
+                </Stack>
               </Box>
             )}
 
@@ -543,13 +744,6 @@ const Page = () => {
                           Capture
                         </Button>
                         <Button
-                          variant="light"
-                          leftSection={<IconUpload />}
-                          onClick={() => fileRef.current?.click()}
-                        >
-                          Upload
-                        </Button>
-                        <Button
                           variant="outline"
                           color="red"
                           onClick={stopCamera}
@@ -624,7 +818,65 @@ const Page = () => {
                       )}
                     </Stack>
                   </Group>
+                </>
+              )}
 
+              {/* Drag and Drop Zone - Below Start Camera Button */}
+              <Divider label="OR upload without camera" labelPosition="center" />
+
+              <Group justify="center" mt="md" mb="sm">
+                <Button
+                  variant="light"
+                  leftSection={<IconUpload />}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  Upload Images
+                </Button>
+              </Group>
+              
+              <Dropzone
+                onDrop={(files) => {
+                  const newImages = files.map((file) =>
+                    URL.createObjectURL(file)
+                  );
+                  setCapturedImages((prev) => {
+                    const remainingSlots = 5 - prev.length;
+                    return [...prev, ...newImages.slice(0, remainingSlots)];
+                  });
+                }}
+                onReject={(files) => {
+                  console.log('rejected files', files);
+                }}
+                maxSize={5 * 1024 ** 2}
+                accept={{ 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] }}
+                multiple
+              >
+                <Group justify="center" gap="sm" mih={100} style={{ pointerEvents: 'none' }}>
+                  <Dropzone.Accept>
+                    <IconCloudUpload size={32} stroke={1.5} color="var(--mantine-color-blue-6)" />
+                  </Dropzone.Accept>
+                  <Dropzone.Reject>
+                    <IconX size={32} stroke={1.5} color="var(--mantine-color-red-6)" />
+                  </Dropzone.Reject>
+                  <Dropzone.Idle>
+                    <IconCloudUpload size={32} stroke={1.5} color="var(--mantine-color-gray-4)" />
+                  </Dropzone.Idle>
+
+                  <div>
+                    <Text size="sm" inline fw={500}>
+                      Drag images here or click to select
+                    </Text>
+                    <Text size="xs" c="dimmed" inline>
+                      {" "}(max 5MB each)
+                    </Text>
+                  </div>
+                </Group>
+              </Dropzone>
+
+              {/* Product Details Section - Show only when we have images */}
+              {capturedImages.length >= 3 && (
+                <>
+                  <Divider />
                   <Text fw={600}>Device / Product Details</Text>
                   <input
                     type="text"

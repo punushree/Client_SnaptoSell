@@ -22,7 +22,7 @@ import {
   IconTarget,
   IconStar,
 } from "@tabler/icons-react";
-import HeroSection from "~/components/HeroSection";
+import HeroSection from "@/components/HeroSection";
 import type { FC } from "react";
 
 const Page: FC = () => {
