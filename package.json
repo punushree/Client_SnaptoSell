@@ -24,7 +24,6 @@
     "@mikro-orm/entity-generator": "^6.6.0",
     "@mikro-orm/migrations": "^6.6.0",
     "@mikro-orm/mysql": "^6.6.0",
-    "@react-router/fs-routes": "^7.9.5",
     "@react-router/node": "^7.9.5",
     "@tabler/icons-react": "^3.35.0",
     "bcryptjs": "^3.0.3",
