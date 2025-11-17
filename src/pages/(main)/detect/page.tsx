@@ -50,16 +50,15 @@ const Page = () => {
     "5) Capture or upload Settings image of device"
   ];
 
-  // Detect mobile
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
   // Start camera
   const startCamera = async (mode: "user" | "environment" = facingMode) => {
     try {
       setIsLoading(true);
       if (stream) stream.getTracks().forEach((t) => t.stop());
 
-      const actualMode = isMobile ? mode : "user";
+      // Check if mobile device
+      const isMobileDevice = typeof window !== "undefined" && window.innerWidth < 768;
+      const actualMode = isMobileDevice ? mode : "user";
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: actualMode } }
       });
@@ -92,6 +91,10 @@ const Page = () => {
     setStream(null);
     if (videoRef.current) videoRef.current.srcObject = null;
     setIsVideoReady(false);
+    // Don't clear captured images - just stop the camera
+  };
+
+  const resetAllImages = () => {
     setCapturedImages([]);
   };
 
@@ -132,18 +135,21 @@ const Page = () => {
   // };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const files = e.target.files;
-  if (!files || files.length === 0) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-  const newImages = Array.from(files).map((file: File) =>
-    URL.createObjectURL(file)
-  );
+    const newImages = Array.from(files).map((file: File) =>
+      URL.createObjectURL(file)
+    );
 
-  setCapturedImages((prev) => {
-    const remainingSlots = 5 - prev.length;
-    return [...prev, ...newImages.slice(0, remainingSlots)];
-  });
-};
+    setCapturedImages((prev) => {
+      const remainingSlots = 5 - prev.length;
+      return [...prev, ...newImages.slice(0, remainingSlots)];
+    });
+
+    // Reset the input so the same files can be selected again
+    e.target.value = '';
+  };
 
 
   // Convert image URL to File object
@@ -503,7 +509,7 @@ const Page = () => {
             {/*Uploaded Images Preview */}
             {capturedImages.length > 0 && (
               <Box mt="lg">
-                <SimpleGrid cols={isMobile ? 3 : 3} spacing="sm" w="100%">
+                <SimpleGrid cols={{ base: 3, sm: 3, md: 3 }} spacing="sm" w="100%">
                   {capturedImages.map((img, index) => (
                     <Card
                       key={index}
@@ -532,9 +538,9 @@ const Page = () => {
                       <Image
                         src={img}
                         fit="cover"
+                        h={{ base: 150, sm: 200, md: 250 }}
+                        w="100%"
                         style={{
-                          width: "100%",
-                          height: isMobile ? "150px" : "250px",
                           display: "block",
                         }}
                       />
@@ -549,15 +555,13 @@ const Page = () => {
               <Button
                 color="yellow"
                 variant="light"
-
                 onClick={() => {
-                  // Reset 
+                  // Reset UI only
                   setSubmitSuccess(null);
                   setCapturedImages([]);
                   setDetails("");
                   setSubmitError(null);
-                  stopCamera(); // for previous stream is stopped
-                  startCamera("environment");
+                  stopCamera();
                 }}
               >
                 New Search
@@ -668,60 +672,76 @@ const Page = () => {
 
           <Paper shadow="sm" p="md" withBorder>
             <Stack gap="md">
-              {!stream ? (
-                <Center py="xl">
-                  <Button
-                    leftSection={<IconCamera />}
-                    onClick={() => startCamera()}
-                    loading={isLoading}
-                  >
-                    Start Camera
-                  </Button>
-                </Center>
-              ) : (
-                <>
-                  <Group
-                    align="flex-start"
-                    grow={!isMobile}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: "none" }}
+                onChange={handleFileUpload}
+              />
+
+              <Group
+                align="flex-start"
+                gap="md"
+                wrap="wrap"
+              >
+                {/* Left side - Camera and controls */}
+                <Stack 
+                  gap="md" 
+                  style={{ 
+                    flex: "1 1 calc(50% - 0.5rem)",
+                    minWidth: "min(100%, 400px)",
+                  }}
+                >
+                  <Box
                     style={{
-                      flexDirection: isMobile ? "column" : "row",
+                      position: "relative",
+                      width: "100%",
+                      height: "clamp(300px, 50vw, 500px)",
+                      background: stream ? "#000" : "#f1f3f5",
+                      borderRadius: 8,
+                      overflow: "hidden",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    <Box
-                      style={{
-                        position: "relative",
-                        width: isMobile ? "100%" : "70%",
-                        height: isMobile ? 300 : 630,
-                        background: "#000",
-                        borderRadius: 8,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {!isVideoReady && <Text c="white">Loading camera...</Text>}
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          display: isVideoReady ? "block" : "none",
-                          transform:
-                            facingMode === "user" ? "scaleX(-1)" : "none",
-                        }}
-                      />
-                    </Box>
+                    {!stream ? (
+                      <Stack align="center" gap="md">
+                        <IconCamera size={64} color="#adb5bd" />
+                        <Text size="sm" c="dimmed">Camera preview will appear here</Text>
+                        <Button
+                          leftSection={<IconCamera />}
+                          onClick={() => startCamera()}
+                          loading={isLoading}
+                        >
+                          Start Camera
+                        </Button>
+                      </Stack>
+                    ) : (
+                      <>
+                        {!isVideoReady && <Text c="white">Loading camera...</Text>}
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            display: isVideoReady ? "block" : "none",
+                            transform:
+                              facingMode === "user" ? "scaleX(-1)" : "none",
+                          }}
+                        />
+                      </>
+                    )}
+                  </Box>
 
-                    <Stack
-                      gap="sm"
-                      align={isMobile ? "stretch" : "center"}
-                      style={{
-                        width: isMobile ? "100%" : 220,
-                        marginTop: isMobile ? 12 : 0,
-                      }}
-                    >
+                  {stream && (
+                    <>
                       {capturedImages.length < 5 && (
                         <Badge
                           size="lg"
@@ -751,127 +771,130 @@ const Page = () => {
                           Cancel
                         </Button>
                       </Group>
+                    </>
+                  )}
+                </Stack>
 
-                      <input
-                        ref={fileRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        style={{ display: "none" }}
-                        onChange={handleFileUpload}
-                      />
-
-                      {capturedImages.length > 0 && (
-                        <Box style={{ width: "100%" }}>
-                          <SimpleGrid cols={isMobile ? 3 : 2} spacing="sm" w="100%">
-                            {capturedImages.map((img, index) => (
-                              <Card
-                                key={index}
-                                p={0}
-                                radius="md"
-                                withBorder
-                                style={{
-                                  position: "relative",
-                                  overflow: "hidden",
-                                }}
-                              >
-                                <Badge
-                                  color="blue"
-                                  size="xs"
-                                  radius="sm"
-                                  style={{
-                                    position: "absolute",
-                                    top: 6,
-                                    left: 6,
-                                    zIndex: 10,
-                                  }}
-                                >
-                                  {index + 1}
-                                </Badge>
-                                <Image
-                                  src={img}
-                                  fit="cover"
-                                  style={{
-                                    width: "100%",
-                                    height: isMobile ? "150px" : "190px",
-                                    display: "block",
-                                  }}
-                                />
-                                <ActionIcon
-                                  color="red"
-                                  variant="filled"
-                                  radius="xl"
-                                  p={3}
-                                  style={{
-                                    position: "absolute",
-                                    top: 6,
-                                    right: 6,
-                                  }}
-                                  onClick={() => deleteImage(index)}
-                                >
-                                  <IconTrash size={16} />
-                                </ActionIcon>
-                              </Card>
-                            ))}
-                          </SimpleGrid>
-                        </Box>
-                      )}
-                    </Stack>
-                  </Group>
-                </>
-              )}
-
-              {/* Drag and Drop Zone - Below Start Camera Button */}
-              <Divider label="OR upload without camera" labelPosition="center" />
-
-              <Group justify="center" mt="md" mb="sm">
-                <Button
-                  variant="light"
-                  leftSection={<IconUpload />}
-                  onClick={() => fileRef.current?.click()}
+                {/* Right side - Upload options and other content */}
+                <Stack 
+                  gap="md" 
+                  style={{ 
+                    flex: "1 1 calc(50% - 0.5rem)",
+                    minWidth: "min(100%, 400px)",
+                  }}
                 >
-                  Upload Images
-                </Button>
-              </Group>
-              
-              <Dropzone
-                onDrop={(files) => {
-                  const newImages = files.map((file) =>
-                    URL.createObjectURL(file)
-                  );
-                  setCapturedImages((prev) => {
-                    const remainingSlots = 5 - prev.length;
-                    return [...prev, ...newImages.slice(0, remainingSlots)];
-                  });
-                }}
-                onReject={(files) => {
-                  console.log('rejected files', files);
-                }}
-                maxSize={5 * 1024 ** 2}
-                accept={{ 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] }}
-                multiple
-              >
-                <Group justify="center" gap="sm" mih={100} style={{ pointerEvents: 'none' }}>
-                  <Dropzone.Accept>
-                    <IconCloudUpload size={32} stroke={1.5} color="var(--mantine-color-blue-6)" />
-                  </Dropzone.Accept>
-                  <Dropzone.Reject>
-                    <IconX size={32} stroke={1.5} color="var(--mantine-color-red-6)" />
-                  </Dropzone.Reject>
-                  <Dropzone.Idle>
-                    <IconCloudUpload size={32} stroke={1.5} color="var(--mantine-color-gray-4)" />
-                  </Dropzone.Idle>
+                  {/* Captured Images Preview - Show in right column */}
+                  {capturedImages.length > 0 && (
+                    <Box style={{ width: "100%" }}>
+                      <Group justify="space-between" mb="sm">
+                        <Text fw={600}>Captured Images ({capturedImages.length}/5)</Text>
+                        <Button
+                          variant="light"
+                          color="red"
+                          size="xs"
+                          leftSection={<IconTrash size={14} />}
+                          onClick={resetAllImages}
+                        >
+                          Reset All
+                        </Button>
+                      </Group>
+                      <SimpleGrid cols={{ base: 2, sm: 2, md: 2 }} spacing="sm" w="100%">
+                        {capturedImages.map((img, index) => (
+                          <Card
+                            key={index}
+                            p={0}
+                            radius="md"
+                            withBorder
+                            style={{
+                              position: "relative",
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Badge
+                              color="blue"
+                              size="xs"
+                              radius="sm"
+                              style={{
+                                position: "absolute",
+                                top: 6,
+                                left: 6,
+                                zIndex: 10,
+                              }}
+                            >
+                              {index + 1}
+                            </Badge>
+                            <Image
+                              src={img}
+                              fit="cover"
+                              h={{ base: 120, sm: 150, md: 180 }}
+                              w="100%"
+                              style={{
+                                display: "block",
+                              }}
+                            />
+                            <ActionIcon
+                              color="red"
+                              variant="filled"
+                              radius="xl"
+                              p={3}
+                              style={{
+                                position: "absolute",
+                                top: 6,
+                                right: 6,
+                              }}
+                              onClick={() => deleteImage(index)}
+                            >
+                              <IconTrash size={16} />
+                            </ActionIcon>
+                          </Card>
+                        ))}
+                      </SimpleGrid>
+                    </Box>
+                  )}
 
-                  <div>
-                    <Text size="sm" inline fw={500}>
-                      Drag images here or click to select
-                    </Text>
-                    <Text size="xs" c="dimmed" inline>
-                      {" "}(max 5MB each)
-                    </Text>
-                  </div>
-                </Group>
-              </Dropzone>
+                  {/* Drag and Drop Zone */}
+                  <Divider label="OR upload without camera" labelPosition="center" />
+
+                  <Dropzone
+                    onDrop={(files) => {
+                      const newImages = files.map((file) =>
+                        URL.createObjectURL(file)
+                      );
+                      setCapturedImages((prev) => {
+                        const remainingSlots = 5 - prev.length;
+                        return [...prev, ...newImages.slice(0, remainingSlots)];
+                      });
+                    }}
+                    onReject={(files) => {
+                      console.log('rejected files', files);
+                    }}
+                    maxSize={5 * 1024 ** 2}
+                    accept={{ 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] }}
+                    multiple
+                  >
+                    <Group justify="center" gap="sm" mih={100} style={{ pointerEvents: 'none' }}>
+                      <Dropzone.Accept>
+                        <IconCloudUpload size={32} stroke={1.5} color="var(--mantine-color-blue-6)" />
+                      </Dropzone.Accept>
+                      <Dropzone.Reject>
+                        <IconX size={32} stroke={1.5} color="var(--mantine-color-red-6)" />
+                      </Dropzone.Reject>
+                      <Dropzone.Idle>
+                        <IconCloudUpload size={32} stroke={1.5} color="var(--mantine-color-gray-4)" />
+                      </Dropzone.Idle>
+
+                      <div>
+                        <Text size="sm" inline fw={500}>
+                          Drag images here or click to select
+                        </Text>
+                        <Text size="xs" c="dimmed" inline>
+                          {" "}(max 5MB each)
+                        </Text>
+                      </div>
+                    </Group>
+                  </Dropzone>
+                </Stack>
+              </Group>
 
               {/* Product Details Section - Show only when we have images */}
               {capturedImages.length >= 3 && (
