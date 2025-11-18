@@ -1,6 +1,7 @@
 import "@mantine/core/styles.css";
 import '@mantine/dropzone/styles.css';
 import "@mantine/nprogress/styles.css";
+import '@mantine/notifications/styles.css';
 import "@/styles/globals.css";
 
 import {
@@ -19,13 +20,15 @@ import {
   MantineProvider,
   mantineHtmlProps,
 } from "@mantine/core";
+import { ModalsProvider } from '@mantine/modals';
+import { Notifications } from '@mantine/notifications';
 
 import type { Route } from "./+types/root";
 import { NavigationProgress, nprogress } from "@mantine/nprogress";
 import { useEffect } from "react";
 import NotFoundPage from "@/pages/404/page";
 
-export function meta({}: MetaArgs) {
+export function meta({ }: MetaArgs) {
   return [
     { title: "SnapToSell - Never Get Scammed on Marketplace Again" },
     {
@@ -62,7 +65,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <MantineProvider>
           <NavigationProgress />
-          {children}
+          <Notifications />
+          <ModalsProvider>
+            {children}
+          </ModalsProvider>
         </MantineProvider>
         <ScrollRestoration />
         <Scripts />

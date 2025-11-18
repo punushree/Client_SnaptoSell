@@ -5,6 +5,7 @@ import {
   Modal, TextInput, Textarea, NumberInput, Divider
 } from "@mantine/core";
 import { Dropzone } from "@mantine/dropzone";
+import { notifications } from "@mantine/notifications";
 import {
   IconCamera, IconCapture, IconAlertCircle,
   IconTrash, IconUpload, IconX, IconCloudUpload
@@ -866,7 +867,27 @@ const Page = () => {
                       });
                     }}
                     onReject={(files) => {
-                      console.log('rejected files', files);
+                      files.forEach((file) => {
+                        let reason = 'Unknown reason';
+                        
+                        if (file.errors.length > 0) {
+                          const error = file.errors[0];
+                          if (error.code === 'file-too-large') {
+                            reason = 'File size exceeds 10MB limit';
+                          } else if (error.code === 'file-invalid-type') {
+                            reason = 'Invalid file type. Only images are allowed';
+                          } else {
+                            reason = error.message || 'File rejected';
+                          }
+                        }
+
+                        notifications.show({
+                          title: 'File Rejected',
+                          message: `${file.file.name}: ${reason}`,
+                          color: 'red',
+                          autoClose: 5000,
+                        });
+                      });
                     }}
                     maxSize={5 * 1024 ** 2}
                     accept={{ 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] }}
@@ -888,7 +909,7 @@ const Page = () => {
                           Drag images here or click to select
                         </Text>
                         <Text size="xs" c="dimmed" inline>
-                          {" "}(max 5MB each)
+                          {" "}(max 10MB each)
                         </Text>
                       </div>
                     </Group>
