@@ -43,7 +43,6 @@
     "react-router": "^7.9.5",
     "react-router-hono-server": "^2.22.0",
     "rr-next-routes": "^0.0.10",
-    "unplugin-mantine-autoload-css": "^0.2.0",
     "uuid": "^13.0.0",
     "vite-plugin-mkcert": "^1.17.9",
     "zod": "^4.1.12"

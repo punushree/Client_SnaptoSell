@@ -4,7 +4,6 @@ import { reactRouterHonoServer } from "react-router-hono-server/dev"; // add thi
 import tsconfigPaths from "vite-tsconfig-paths";
 import devtoolsJson from "vite-plugin-devtools-json";
 // import mkcert from "vite-plugin-mkcert";
-import { mantineAutoloadCSS } from 'unplugin-mantine-autoload-css'
 
 export default defineConfig({
   plugins: [
@@ -12,7 +11,6 @@ export default defineConfig({
     reactRouterHonoServer(),
     reactRouter(),
     tsconfigPaths(),
-    mantineAutoloadCSS(),
     // mkcert(),
   ],
 });
