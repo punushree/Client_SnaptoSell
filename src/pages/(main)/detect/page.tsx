@@ -39,12 +39,12 @@ const Page = () => {
     brand: "",
     color_variants: "",
     size: "",
-    condition_rating: 0,
+    condition_rating: "",
     estimated_year: "",
     short_description: "",
      storage: "",
     model: "",
-    model_number: "",
+    model_variant : "",
     carrier : "",
     connectivity :"",
   });
@@ -277,12 +277,12 @@ const Page = () => {
           brand: result.data.analysis?.brand || "",
           color_variants: result.data.analysis?.color_variants || "",
           size: result.data.analysis?.size || "",
-          condition_rating: result.data.analysis?.condition_rating || 0,
+          condition_rating: result.data.analysis?.condition_rating || "",
           estimated_year: result.data.analysis?.estimated_year || "",
           short_description: result.data.analysis?.short_description || "",
            storage: result.data.analysis?.storage || "",
            model: result.data.analysis?.model || "",
-           model_number: result.data.analysis?.model_number || "",
+           model_variant: result.data.analysis?.model_variant || "",
            carrier : result.data.analysis?.carrier || "",
            connectivity : result.data.analysis?.connectivity || "",
         });
@@ -377,8 +377,8 @@ const Page = () => {
                 <Text fw={500}>{submitSuccess?.analysis?.model || "N/A"}</Text>
               </div>
               <div>
-                <Text size="sm" c="dimmed">Model Number</Text>
-                <Text fw={500}>{submitSuccess?.analysis?.model_number || "N/A"}</Text>
+                <Text size="sm" c="dimmed">Model Variant</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.model_variant || "N/A"}</Text>
               </div>
               
               <div>
@@ -399,7 +399,7 @@ const Page = () => {
               </div>
               <div>
                 <Text size="sm" c="dimmed">Condition Rating</Text>
-                <Text fw={500}>{submitSuccess?.analysis?.condition_rating || "N/A"}/10</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.condition_rating || "N/A"}</Text>
               </div>
 
               <div>
@@ -450,7 +450,8 @@ const Page = () => {
               min={1}
               max={10}
               value={editedProduct.condition_rating}
-              onChange={(val) => setEditedProduct({...editedProduct, condition_rating: val as number})}
+                  //value={typeof editedProduct.condition_rating === 'string' && editedProduct.condition_rating === '' ? undefined : Number(editedProduct.condition_rating)}
+              onChange={(val) => setEditedProduct({...editedProduct, condition_rating: val !== null && val !== undefined ? String(val) : ""})}
             />
 
             <TextInput
@@ -469,8 +470,8 @@ const Page = () => {
             <TextInput
               label="Model Number"
               placeholder=""
-              value={editedProduct.model_number}
-              onChange={(e) => setEditedProduct({...editedProduct, model_number: e.target.value})}
+              value={editedProduct.model_variant}
+              onChange={(e) => setEditedProduct({...editedProduct, model_variant: e.target.value})}
             />
 
              <TextInput
@@ -557,7 +558,7 @@ const Page = () => {
                   </div>
                   <div>
                     <Text size="sm" c="dimmed">Condition</Text>
-                    <Text fw={500}>{submitSuccess.analysis.condition_rating || "N/A"}/10</Text>
+                    <Text fw={500}>{submitSuccess.analysis.condition_rating || "N/A"}</Text>
                   </div>
                   <div>
                     <Text size="sm" c="dimmed">Model</Text>
@@ -565,7 +566,7 @@ const Page = () => {
                   </div>
                   <div>
                     <Text size="sm" c="dimmed">Model Number</Text>
-                    <Text fw={500}>{submitSuccess.analysis.model_number || "N/A"}</Text>
+                    <Text fw={500}>{submitSuccess.analysis.model_variant || "N/A"}</Text>
                   </div>
                   <div>
                     <Text size="sm" c="dimmed">Storage</Text>

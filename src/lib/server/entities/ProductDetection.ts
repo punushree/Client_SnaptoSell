@@ -41,7 +41,7 @@ export class ProductDetection {
   short_description?: string;
 
   @Property({ type: 'float', nullable: true })
-  condition_rating?: number;
+  condition_rating?: string;
 
   @Property({ type: 'text', nullable: true })
   condition_details?: string;
@@ -74,7 +74,7 @@ export class ProductDetection {
   model?: string;
 
   @Property({ type: 'text', nullable: true })
-  model_number?: string;
+  model_variant?: string;
 
   @Property({ type: 'text', nullable: true })
   carrier?: string;

@@ -15,11 +15,11 @@ export interface ProductAnalysisResult {
   possible_confusion: string;
   clarity_feedback: string;
   short_description: string;
-  condition_rating: number;
+  condition_rating: string;
   condition_details: string;
   estimated_year: string;
   model: string;
-  model_number: string;
+  model_variant: string;
   storage: string;
   carrier: string;
   connectivity: string;
@@ -301,11 +301,11 @@ function parseOpenAIResponse(responseText: string): {
       possible_confusion: parsed.possible_confusion || '',
       clarity_feedback: parsed.clarity_feedback || '',
       short_description: parsed.short_description || '',
-      condition_rating: parseFloat(parsed.condition_rating) || 0,
+      condition_rating: parsed.condition_rating || 0,
       condition_details: parsed.condition_details || '',
       estimated_year: parsed.estimated_year || '',
       model: parsed.model || '',
-      model_number: parsed.model_number || '',
+      model_variant: parsed.model_number || '',
       storage: parsed.storage || '',
       carrier: parsed.carrier || '',
       connectivity : parsed.connectivity || '',
