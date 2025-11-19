@@ -4,6 +4,12 @@
   padding-right: var(--mantine-spacing-md);
   border-bottom: 1px solid
     light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    height: 56px;
+    padding-left: var(--mantine-spacing-sm);
+    padding-right: var(--mantine-spacing-sm);
+  }
 }
 
 .link {
@@ -16,11 +22,27 @@
   color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
   font-weight: 500;
   font-size: var(--mantine-font-size-sm);
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
 
-  @media (max-width: $mantine-breakpoint-sm) {
-    height: 42px;
-    width: 100%;
+  @mixin hover {
+    background-color: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-6)
+    );
   }
+}
+
+.mobileLink {
+  display: flex;
+  align-items: center;
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  text-decoration: none;
+  color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+  font-weight: 500;
+  font-size: var(--mantine-font-size-sm);
+  border-radius: var(--mantine-radius-md);
+  transition: background-color 0.2s ease;
 
   @mixin hover {
     background-color: light-dark(
@@ -58,6 +80,12 @@
 
 .headerLogo {
   width: 70px;
+  height: auto;
+  object-fit: contain;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    width: 60px;
+  }
 }
 
 .sticky {
@@ -65,6 +93,7 @@
   top: 0;
   right: 0;
   left: 0;
-  background-color: white;
-  z-index: 2;
+  background-color: light-dark(white, var(--mantine-color-dark-7));
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
