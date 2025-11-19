@@ -1,3 +1,4 @@
+import '@mantine/dropzone/styles.css';
 import { useRef, useState, useEffect } from "react";
 import {
   Container, Paper, Stack, Title, Text, Button, Group, Center, Alert,

@@ -1,5 +1,4 @@
 import "@mantine/core/styles.css";
-import '@mantine/dropzone/styles.css';
 import "@mantine/nprogress/styles.css";
 import '@mantine/notifications/styles.css';
 import "@/styles/globals.css";
@@ -36,6 +35,7 @@ export function meta({ }: MetaArgs) {
       content:
         "AI-powered fraud detection meets instant item pricing. Sell safely, sell smarter, sell faster.",
     },
+    { name: "robots", content: "noindex, nofollow" }
   ];
 }
 
