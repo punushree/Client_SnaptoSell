@@ -1,5 +1,4 @@
-import "@mantine/core/styles.css";
-import '@mantine/dropzone/styles.css';
+// import "@mantine/core/styles.css";
 import "@mantine/nprogress/styles.css";
 import '@mantine/notifications/styles.css';
 import "@/styles/globals.css";

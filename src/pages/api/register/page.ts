@@ -1,7 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { getOrm } from "@/lib/server/db";
 import {User} from "@/lib/server/entities/User"
-import bcrypt from "bcryptjs";
 
  
 export const action = async ({ request }: ActionFunctionArgs) => {
