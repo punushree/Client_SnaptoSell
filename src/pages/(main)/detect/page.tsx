@@ -9,7 +9,7 @@ import { Dropzone } from "@mantine/dropzone";
 import { notifications } from "@mantine/notifications";
 import {
   IconCamera, IconCapture, IconAlertCircle,
-  IconTrash, IconUpload, IconX, IconCloudUpload
+  IconTrash, IconX, IconCloudUpload
 } from "@tabler/icons-react";
 import SampleImages from "@/components/SampleImages";
 
