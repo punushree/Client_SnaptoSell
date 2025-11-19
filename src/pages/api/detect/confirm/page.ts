@@ -20,6 +20,11 @@ interface ConfirmationRequest {
     condition_rating?: number;
     estimated_year?: string;
     short_description?: string;
+    storage?: string;
+    model?: string;
+    model_number?: string;
+    carrier?: string;
+    connectivity?: string;
   };
 }
 
@@ -92,6 +97,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (updatedData.short_description) {
         detection.short_description = updatedData.short_description.trim();
       }
+      if (updatedData.storage) {
+        detection.storage = updatedData.storage.trim();
+      }
+      if (updatedData.model) {
+        detection.model = updatedData.model.trim();
+      }
+      if (updatedData.model_number) {
+        detection.model_number = updatedData.model_number.trim();
+      }
+      if (updatedData.carrier) {
+        detection.carrier = updatedData.carrier.trim();
+      }
+      if (updatedData.connectivity) {
+        detection.connectivity = updatedData.connectivity.trim();
+      }
     }
 
     // If user disagreed, still save the record but mark it differently
@@ -118,6 +138,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (updatedData.short_description) {
         detection.short_description = updatedData.short_description.trim();
       }
+      if (updatedData.storage) {
+        detection.storage = updatedData.storage.trim();
+      }
+      if (updatedData.model) {
+        detection.model = updatedData.model.trim();
+      }
+      if (updatedData.model_number) {
+        detection.model_number = updatedData.model_number.trim();
+      }
+      if (updatedData.carrier) {
+        detection.carrier = updatedData.carrier.trim();
+      }
+      if (updatedData.connectivity) {
+        detection.connectivity = updatedData.connectivity.trim();
+      }
     }
 
     // Save the updated record
@@ -139,6 +174,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         condition_rating: detection.condition_rating,
         estimated_year: detection.estimated_year,
         short_description: detection.short_description,
+         storage: detection.storage,
+        model: detection.model,
+        model_number: detection.model_number,
+        carrier: detection.carrier,
+        connectivity: detection.connectivity,
       },
     }, { status: 200 });
 

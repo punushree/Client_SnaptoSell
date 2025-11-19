@@ -2,7 +2,8 @@ import { useRef, useState, useEffect } from "react";
 import {
   Container, Paper, Stack, Title, Text, Button, Group, Center, Alert,
   ActionIcon, Box, Image, SimpleGrid, Card, Badge,
-  Modal, TextInput, Textarea, NumberInput, Divider
+  Modal, TextInput, Textarea, NumberInput, Divider,
+  Select
 } from "@mantine/core";
 import { Dropzone } from "@mantine/dropzone";
 import { notifications } from "@mantine/notifications";
@@ -40,7 +41,12 @@ const Page = () => {
     size: "",
     condition_rating: 0,
     estimated_year: "",
-    short_description: ""
+    short_description: "",
+     storage: "",
+    model: "",
+    model_number: "",
+    carrier : "",
+    connectivity :"",
   });
 
   const messages = [
@@ -273,7 +279,12 @@ const Page = () => {
           size: result.data.analysis?.size || "",
           condition_rating: result.data.analysis?.condition_rating || 0,
           estimated_year: result.data.analysis?.estimated_year || "",
-          short_description: result.data.analysis?.short_description || ""
+          short_description: result.data.analysis?.short_description || "",
+           storage: result.data.analysis?.storage || "",
+           model: result.data.analysis?.model || "",
+           model_number: result.data.analysis?.model_number || "",
+           carrier : result.data.analysis?.carrier || "",
+           connectivity : result.data.analysis?.connectivity || "",
         });
         setShowConfirmation(true);
       } else {
@@ -362,6 +373,23 @@ const Page = () => {
                 <Text fw={500}>{submitSuccess?.analysis?.brand || "N/A"}</Text>
               </div>
               <div>
+                <Text size="sm" c="dimmed">Model</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.model || "N/A"}</Text>
+              </div>
+              <div>
+                <Text size="sm" c="dimmed">Model Number</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.model_number || "N/A"}</Text>
+              </div>
+              
+              <div>
+                <Text size="sm" c="dimmed">Storage 
+                  <Text component="span" c="red">*</Text>
+                </Text>
+
+                <Text fw={500}>{submitSuccess?.analysis?.storage || "N/A"}</Text>
+              </div>
+
+              <div>
                 <Text size="sm" c="dimmed">Color</Text>
                 <Text fw={500}>{submitSuccess?.analysis?.color_variants || "N/A"}</Text>
               </div>
@@ -372,6 +400,11 @@ const Page = () => {
               <div>
                 <Text size="sm" c="dimmed">Condition Rating</Text>
                 <Text fw={500}>{submitSuccess?.analysis?.condition_rating || "N/A"}/10</Text>
+              </div>
+
+              <div>
+                <Text size="sm" c="dimmed">Carrier</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.carrier || "N/A"}</Text>
               </div>
               <div>
                 <Text size="sm" c="dimmed">Estimated Year</Text>
@@ -425,6 +458,39 @@ const Page = () => {
               placeholder="e.g., 2023"
               value={editedProduct.estimated_year}
               onChange={(e) => setEditedProduct({...editedProduct, estimated_year: e.target.value})}
+            />
+            <TextInput
+              label="Model"
+              placeholder=""
+              value={editedProduct.model}
+              onChange={(e) => setEditedProduct({...editedProduct, model: e.target.value})}
+            />
+
+            <TextInput
+              label="Model Number"
+              placeholder=""
+              value={editedProduct.model_number}
+              onChange={(e) => setEditedProduct({...editedProduct, model_number: e.target.value})}
+            />
+
+             <TextInput
+              label="Storage"
+              placeholder=""
+              value={editedProduct.storage}
+              onChange={(e) => setEditedProduct({...editedProduct, storage: e.target.value})}
+            />
+
+            <Select
+              label="Carrier"
+              placeholder=""
+              searchable
+              nothingFoundMessage="No results"
+              
+               data={["Locked", "Unlocked"]}
+              value={editedProduct.carrier}
+              onChange={(value) =>
+                setEditedProduct({ ...editedProduct, carrier: value || "" })
+              }
             />
 
             <Textarea
@@ -492,6 +558,18 @@ const Page = () => {
                   <div>
                     <Text size="sm" c="dimmed">Condition</Text>
                     <Text fw={500}>{submitSuccess.analysis.condition_rating || "N/A"}/10</Text>
+                  </div>
+                  <div>
+                    <Text size="sm" c="dimmed">Model</Text>
+                    <Text fw={500}>{submitSuccess.analysis.model || "N/A"}</Text>
+                  </div>
+                  <div>
+                    <Text size="sm" c="dimmed">Model Number</Text>
+                    <Text fw={500}>{submitSuccess.analysis.model_number || "N/A"}</Text>
+                  </div>
+                  <div>
+                    <Text size="sm" c="dimmed">Storage</Text>
+                    <Text fw={500}>{submitSuccess.analysis.storage || "N/A"}</Text>
                   </div>
                   <div>
                     <Text size="sm" c="dimmed">Estimated Year</Text>

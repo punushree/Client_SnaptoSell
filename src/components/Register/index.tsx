@@ -87,6 +87,10 @@ const Register = () => {
         setPassword("");
         setTermsAccepted(false);
         
+        // Sign out to ensure user must explicitly sign in
+        // (better-auth may auto-sign-in after registration)
+        await authClient.signOut();
+        
         // Redirect to sign-in page after 2 seconds
         setTimeout(() => {
           navigate("/sign-in");

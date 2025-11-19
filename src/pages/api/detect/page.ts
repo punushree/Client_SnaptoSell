@@ -147,6 +147,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         condition_rating: analysisResult.analysis.condition_rating,
         condition_details: analysisResult.analysis.condition_details,
         estimated_year: analysisResult.analysis.estimated_year,
+        model : analysisResult.analysis.model,
+        model_number : analysisResult.analysis.model_number,
+        storage : analysisResult.analysis.storage,
+        carrier : analysisResult.analysis.carrier,
+        connectivity :analysisResult.analysis.connectivity,
         status: 'completed' as const
       });
 

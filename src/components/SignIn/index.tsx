@@ -62,13 +62,13 @@ const SignIn = () => {
       }
 
       if (result.data) {
-        // Redirect to dashboard on successful sign in
-        navigate("/dashboard");
+        // Session is automatically managed by better-auth
+        // Redirect to home page on successful sign in
+        navigate("/");
       }
     } catch (err) {
       console.error("Sign in error:", err);
       setError("Network error. Please check your connection and try again.");
-    } finally {
       setLoading(false);
     }
   };
