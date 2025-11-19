@@ -13,7 +13,7 @@
 
 import type { ActionFunctionArgs } from "react-router";
 import { getOrm } from "@/lib/server/db";
-import { ProductDetection } from "@/lib/server/entities/product-detection.entity";
+import { ProductDetection } from "@/lib/server/entities/ProductDetection";
 import { uploadMultipleToS3 } from "@/lib/server/s3";
 import { analyzeProductImages } from "@/lib/server/openai";
 

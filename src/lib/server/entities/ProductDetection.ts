@@ -61,9 +61,9 @@ export class ProductDetection {
   @Property({ type: 'datetime', nullable: true })
   confirmedAt?: Date;
 
-  @Property({ defaultRaw: 'CURRENT_TIMESTAMP', onCreate: () => new Date() })
+  @Property({ type: 'datetime', defaultRaw: 'CURRENT_TIMESTAMP', onCreate: () => new Date() })
   createdAt: Date = new Date();
 
-  @Property({ defaultRaw: 'CURRENT_TIMESTAMP', onUpdate: () => new Date() })
+  @Property({ type: 'datetime', defaultRaw: 'CURRENT_TIMESTAMP', onUpdate: () => new Date() })
   updatedAt: Date = new Date();
 }

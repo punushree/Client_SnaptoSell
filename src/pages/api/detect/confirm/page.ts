@@ -7,7 +7,7 @@
 
 import type { ActionFunctionArgs } from "react-router";
 import { getOrm } from "@/lib/server/db";
-import { ProductDetection } from "@/lib/server/entities/product-detection.entity";
+import { ProductDetection } from "@/lib/server/entities/ProductDetection";
 
 interface ConfirmationRequest {
   uuid: string;
