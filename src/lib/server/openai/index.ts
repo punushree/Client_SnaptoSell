@@ -23,6 +23,9 @@ export interface ProductAnalysisResult {
   storage: string;
   carrier: string;
   connectivity: string;
+  ram: string;
+  processor: string;
+  gpu: string;
 }
 
 export interface ProductAnalysisResponse {
@@ -301,14 +304,17 @@ function parseOpenAIResponse(responseText: string): {
       possible_confusion: parsed.possible_confusion || '',
       clarity_feedback: parsed.clarity_feedback || '',
       short_description: parsed.short_description || '',
-      condition_rating: parsed.condition_rating || 0,
+      condition_rating: parsed.condition_rating || '',
       condition_details: parsed.condition_details || '',
       estimated_year: parsed.estimated_year || '',
       model: parsed.model || '',
-      model_variant: parsed.model_number || '',
+      model_variant: parsed.model_variant || '',
       storage: parsed.storage || '',
       carrier: parsed.carrier || '',
       connectivity : parsed.connectivity || '',
+      ram: parsed.ram || '',
+      processor: parsed. processor|| '',
+      gpu: parsed.gpu || '',
     };
 
     return { analysis, summary };

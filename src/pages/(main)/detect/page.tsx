@@ -47,6 +47,9 @@ const Page = () => {
     model_variant : "",
     carrier : "",
     connectivity :"",
+    ram: "",
+    processor: "",
+    gpu: "",
   });
 
   const messages = [
@@ -285,6 +288,9 @@ const Page = () => {
            model_variant: result.data.analysis?.model_variant || "",
            carrier : result.data.analysis?.carrier || "",
            connectivity : result.data.analysis?.connectivity || "",
+           ram : result.data.analysis?.ram || "",
+           processor : result.data.analysis?.processor || "",
+           gpu : result.data.analysis?.gpu || "",
         });
         setShowConfirmation(true);
       } else {
@@ -385,8 +391,20 @@ const Page = () => {
                 <Text size="sm" c="dimmed">Storage 
                   <Text component="span" c="red">*</Text>
                 </Text>
-
                 <Text fw={500}>{submitSuccess?.analysis?.storage || "N/A"}</Text>
+              </div>
+
+              <div>
+                <Text size="sm" c="dimmed">RAM</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.ram || "N/A"}</Text>
+              </div>
+              <div>
+                <Text size="sm" c="dimmed">Processor</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.processor || "N/A"}</Text>
+              </div>
+              <div>
+                <Text size="sm" c="dimmed">GPU</Text>
+                <Text fw={500}>{submitSuccess?.analysis?.gpu || "N/A"}</Text>
               </div>
 
               <div>
@@ -445,8 +463,8 @@ const Page = () => {
             />
 
             <NumberInput
-              label="Condition Rating (1-10)"
-              placeholder="e.g., 8"
+              label="Condition Rating"
+              placeholder="good"
               min={1}
               max={10}
               value={editedProduct.condition_rating}
@@ -480,6 +498,28 @@ const Page = () => {
               value={editedProduct.storage}
               onChange={(e) => setEditedProduct({...editedProduct, storage: e.target.value})}
             />
+
+            <TextInput
+              label="RAM"
+              placeholder=""
+              value={editedProduct.ram}
+              onChange={(e) => setEditedProduct({...editedProduct, ram: e.target.value})}
+            />
+
+            <TextInput
+              label="Processor"
+              placeholder=""
+              value={editedProduct.processor}
+              onChange={(e) => setEditedProduct({...editedProduct, processor: e.target.value})}
+            />
+
+            <TextInput
+              label="GPU"
+              placeholder=""
+              value={editedProduct.gpu}
+              onChange={(e) => setEditedProduct({...editedProduct, gpu: e.target.value})}
+            />
+
 
             <Select
               label="Carrier"
@@ -565,12 +605,27 @@ const Page = () => {
                     <Text fw={500}>{submitSuccess.analysis.model || "N/A"}</Text>
                   </div>
                   <div>
-                    <Text size="sm" c="dimmed">Model Number</Text>
+                    <Text size="sm" c="dimmed">Model Variant</Text>
                     <Text fw={500}>{submitSuccess.analysis.model_variant || "N/A"}</Text>
                   </div>
                   <div>
                     <Text size="sm" c="dimmed">Storage</Text>
                     <Text fw={500}>{submitSuccess.analysis.storage || "N/A"}</Text>
+                  </div>
+
+                  <div>
+                    <Text size="sm" c="dimmed">RAM</Text>
+                    <Text fw={500}>{submitSuccess.analysis.ram || "N/A"}</Text>
+                  </div>
+
+                  <div>
+                    <Text size="sm" c="dimmed">Processer</Text>
+                    <Text fw={500}>{submitSuccess.analysis.processor || "N/A"}</Text>
+                  </div>
+
+                  <div>
+                    <Text size="sm" c="dimmed">GPU</Text>
+                    <Text fw={500}>{submitSuccess.analysis.gpu || "N/A"}</Text>
                   </div>
                   <div>
                     <Text size="sm" c="dimmed">Estimated Year</Text>

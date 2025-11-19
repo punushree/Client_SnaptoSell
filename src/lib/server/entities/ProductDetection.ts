@@ -81,4 +81,13 @@ export class ProductDetection {
 
   @Property({ type: 'text', nullable: true })
   connectivity?: string;
+
+  @Property({ type: 'text', nullable: true })
+   ram?: string;
+
+   @Property({ type: 'text', nullable: true })
+   processor?: string;
+
+   @Property({ type: 'text', nullable: true })
+   gpu?: string;
 }

@@ -17,14 +17,18 @@ interface ConfirmationRequest {
     brand?: string;
     color_variants?: string;
     size?: string;
-    condition_rating?: number;
+    condition_rating?: string;
     estimated_year?: string;
     short_description?: string;
     storage?: string;
     model?: string;
-    model_number?: string;
+    model_variant?: string;
     carrier?: string;
     connectivity?: string;
+
+    ram?: string;
+    processor?: string;
+    gpu?: string;
   };
 }
 
@@ -100,11 +104,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (updatedData.storage) {
         detection.storage = updatedData.storage.trim();
       }
+
+      if (updatedData.ram) {
+        detection.storage = updatedData.ram.trim();
+      }
+      if (updatedData.processor) {
+        detection.storage = updatedData.processor.trim();
+      }
+      if (updatedData.gpu) {
+        detection.storage = updatedData.gpu.trim();
+      }
+
       if (updatedData.model) {
         detection.model = updatedData.model.trim();
       }
-      if (updatedData.model_number) {
-        detection.model_number = updatedData.model_number.trim();
+      if (updatedData.model_variant) {
+        detection.model_variant = updatedData.model_variant.trim();
       }
       if (updatedData.carrier) {
         detection.carrier = updatedData.carrier.trim();
@@ -141,11 +156,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (updatedData.storage) {
         detection.storage = updatedData.storage.trim();
       }
+      if (updatedData.ram) {
+        detection.storage = updatedData.ram.trim();
+      }
+      if (updatedData.processor) {
+        detection.storage = updatedData.processor.trim();
+      }
+      if (updatedData.gpu) {
+        detection.storage = updatedData.gpu.trim();
+      }
       if (updatedData.model) {
         detection.model = updatedData.model.trim();
       }
-      if (updatedData.model_number) {
-        detection.model_number = updatedData.model_number.trim();
+      if (updatedData.model_variant) {
+        detection.model_variant = updatedData.model_variant.trim();
       }
       if (updatedData.carrier) {
         detection.carrier = updatedData.carrier.trim();
@@ -176,9 +200,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         short_description: detection.short_description,
          storage: detection.storage,
         model: detection.model,
-        model_number: detection.model_number,
+        model_variant: detection.model_variant,
         carrier: detection.carrier,
         connectivity: detection.connectivity,
+         ram: detection.ram,
+         processor: detection.processor,
+         gpu: detection.gpu,
       },
     }, { status: 200 });
 

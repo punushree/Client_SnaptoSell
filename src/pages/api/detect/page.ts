@@ -16,6 +16,7 @@ import { getOrm } from "@/lib/server/db";
 import { ProductDetection } from "@/lib/server/entities/ProductDetection";
 import { uploadMultipleToS3 } from "@/lib/server/s3";
 import { analyzeProductImages } from "@/lib/server/openai";
+import { Processor } from "postcss";
 
 interface UploadedFile {
   buffer: Buffer;
@@ -148,10 +149,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         condition_details: analysisResult.analysis.condition_details,
         estimated_year: analysisResult.analysis.estimated_year,
         model : analysisResult.analysis.model,
-        model_number : analysisResult.analysis.model_number,
+        model_variant : analysisResult.analysis.model_variant,
         storage : analysisResult.analysis.storage,
         carrier : analysisResult.analysis.carrier,
         connectivity :analysisResult.analysis.connectivity,
+        ram :analysisResult.analysis.ram,
+        processor : analysisResult.analysis.processor,
+        gpu : analysisResult.analysis.gpu,
         status: 'completed' as const
       });
 
