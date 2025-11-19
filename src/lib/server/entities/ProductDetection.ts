@@ -6,18 +6,18 @@ export class ProductDetection {
 
   @PrimaryKey({ type: 'uuid' })
   uuid: string = v4();
-  
+
   @Property({ type: 'json' })
-  inputImages: string[] = []; 
+  inputImages: string[] = [];
 
   @Property({ type: 'text' })
-  inputDescription!: string; 
+  inputDescription!: string;
 
   @Property({ type: 'text', nullable: true })
   identified_product?: string;
 
   @Property({ type: 'text', nullable: true })
-  brand?: string; 
+  brand?: string;
 
   @Property({ type: 'text', nullable: true })
   color_variants?: string;
@@ -29,13 +29,13 @@ export class ProductDetection {
   material_composition?: string;
 
   @Property({ type: 'text', nullable: true })
-  distinctive_features?: string; 
+  distinctive_features?: string;
 
   @Property({ type: 'text', nullable: true })
   possible_confusion?: string;
 
   @Property({ type: 'text', nullable: true })
-  clarity_feedback?: string; 
+  clarity_feedback?: string;
 
   @Property({ type: 'text', nullable: true })
   short_description?: string;
@@ -61,9 +61,24 @@ export class ProductDetection {
   @Property({ type: 'datetime', nullable: true })
   confirmedAt?: Date;
 
-  @Property({ type: 'datetime', defaultRaw: 'CURRENT_TIMESTAMP', onCreate: () => new Date() })
+  @Property({ defaultRaw: 'CURRENT_TIMESTAMP', onCreate: () => new Date() })
   createdAt: Date = new Date();
 
-  @Property({ type: 'datetime', defaultRaw: 'CURRENT_TIMESTAMP', onUpdate: () => new Date() })
+  @Property({ defaultRaw: 'CURRENT_TIMESTAMP', onUpdate: () => new Date() })
   updatedAt: Date = new Date();
+
+  @Property({ type: 'text', nullable: true })
+  storage?: string;
+
+  @Property({ type: 'text', nullable: true })
+  model?: string;
+
+  @Property({ type: 'text', nullable: true })
+  model_number?: string;
+
+  @Property({ type: 'text', nullable: true })
+  carrier?: string;
+
+  @Property({ type: 'text', nullable: true })
+  connectivity?: string;
 }
