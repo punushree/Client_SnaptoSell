@@ -9,18 +9,21 @@ import { ProductDetection } from "@/lib/server/entities/ProductDetection";
 import { User } from "@/lib/server/entities/User";
 import { Session } from "@/lib/server/entities/Session";
 import { Verification } from "@/lib/server/entities/Verification";
+import dotenv from "dotenv"
 
-const isMikroOrmCommand = () => {
-    const args = process.argv;
-    return args.some(arg => arg.includes('mikro-orm'));
-};
+// const isMikroOrmCommand = () => {
+//     const args = process.argv;
+//     return args.some(arg => arg.includes('mikro-orm'));
+// };
 
-if (isMikroOrmCommand()) {
-    if (typeof window === 'undefined') {
-        const dotenv = (await import('dotenv'));
-        dotenv.config({ debug: true });
-    }
-}
+// if (isMikroOrmCommand()) {
+//     if (typeof window === 'undefined') {
+//         const dotenv = (await import('dotenv'));
+//         dotenv.config({ debug: true });
+//     }
+// }
+
+dotenv.config({ debug: true });
 
 const ENTITIES: Options['entities'] = [Account, ProductDetection, Session, User, Verification];
 
