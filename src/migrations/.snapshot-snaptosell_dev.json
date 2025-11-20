@@ -457,6 +457,67 @@
           "nullable": true,
           "length": 36,
           "mappedType": "string"
+        },
+        "average_price": {
+          "name": "average_price",
+          "type": "float",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": null,
+          "mappedType": "float"
+        },
+        "min_price": {
+          "name": "min_price",
+          "type": "float",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": null,
+          "mappedType": "float"
+        },
+        "max_price": {
+          "name": "max_price",
+          "type": "float",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": null,
+          "mappedType": "float"
+        },
+        "price_currency": {
+          "name": "price_currency",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "default": "'USD'",
+          "mappedType": "string"
+        },
+        "ebay_items_count": {
+          "name": "ebay_items_count",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": null,
+          "mappedType": "integer"
+        },
+        "pricing_updated_at": {
+          "name": "pricing_updated_at",
+          "type": "datetime",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": null,
+          "mappedType": "datetime"
         }
       },
       "name": "product_detection",

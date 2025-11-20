@@ -1,0 +1,461 @@
+/**
+ * eBay API Integration Service
+ * Handles product search and price calculation from eBay API
+ */
+
+import * as dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
+
+interface EbayItem {
+  itemId: string;
+  title: string;
+  itemWebUrl: string;
+  categories?: Array<{ categoryId: string; categoryName: string }>;
+  leafCategoryIds?: string[];
+  price?: {
+    value: string;
+    currency: string;
+  };
+  condition?: string;
+  conditionId?: string;
+  image?: {
+    imageUrl: string;
+  };
+  thumbnailImages?: Array<{ imageUrl: string }>;
+  additionalImages?: Array<{ imageUrl: string }>;
+  marketingPrice?: {
+    originalPrice?: { value: string };
+    discountPercentage?: string;
+  };
+  unitPrice?: {
+    value: string;
+  };
+  availableQuantity?: number;
+  itemHref?: string;
+  epid?: string;
+  itemGroupType?: string;
+  itemGroupHref?: string;
+}
+
+interface EbayApiResponse {
+  itemSummaries?: EbayItem[];
+  error?: string;
+  status_code?: number;
+}
+
+interface ExtractedItem {
+  item_id: string;
+  title: string;
+  item_url: string;
+  categories: Array<{ category_id: string; category_name: string }>;
+  leaf_category_ids: string[];
+  price_value: number | string;
+  price_currency: string;
+  condition: string;
+  condition_id: string;
+  primary_image_url: string;
+  thumbnail_images: Array<{ imageUrl: string }>;
+  additional_images: Array<{ imageUrl: string }>;
+  marketing_price_original: string;
+  marketing_price_discount: string;
+  unit_price: string;
+  available_quantity: number | string;
+  item_href: string;
+  epid: string;
+  item_group_type: string;
+  item_group_href: string;
+}
+
+interface PriceStatistics {
+  average_price: number;
+  min_price: number;
+  max_price: number;
+  count: number;
+  currency: string;
+}
+
+interface ProductData {
+  uuid: string;
+  identified_product?: string;
+  brand?: string;
+  model?: string;
+  model_variant?: string;
+  storage?: string;
+  size?: string;
+  condition_rating?: string;
+}
+
+export class EbayAPIService {
+  private ebayToken: string;
+  private apiBaseUrl: string = "https://api.ebay.com/buy/browse/v1/item_summary/search";
+  
+  // eBay Category IDs for devices only
+  private validCategoryIds: Set<string> = new Set([
+    '9355',      // Cell Phones & Smartphones
+    '177',       // Laptops & Netbooks
+    '171485',    // Tablets & eBook Readers
+  ]);
+
+  constructor(ebayToken?: string) {
+    // Use provided token or read from environment variable
+    const token = ebayToken || process.env.EBAY_TOKEN;
+    
+    if (!token || token.trim() === '') {
+      // Provide helpful error message
+      const errorMsg = ebayToken 
+        ? 'eBay token is required and cannot be empty.'
+        : 'eBay token is required. Please set EBAY_TOKEN in your .env file. ' +
+          `Current EBAY_TOKEN value: ${process.env.EBAY_TOKEN ? 'exists but is empty' : 'not found'}`;
+      
+      console.error('EbayAPIService initialization error:', {
+        hasTokenParam: !!ebayToken,
+        hasEnvVar: !!process.env.EBAY_TOKEN,
+        envVarLength: process.env.EBAY_TOKEN?.length || 0
+      });
+      
+      throw new Error(errorMsg);
+    }
+    this.ebayToken = token;
+  }
+
+  /**
+   * Format search query from product data
+   */
+  formatSearchQuery(product: ProductData): string {
+    const queryParts: string[] = [];
+
+    // Identified Product (most important)
+    if (product.identified_product) {
+      const identified = String(product.identified_product).trim();
+      if (identified && identified.toLowerCase() !== 'none') {
+        queryParts.push(identified);
+      }
+    }
+
+    // Brand
+    if (product.brand) {
+      const brand = String(product.brand).trim();
+      if (brand && brand.toLowerCase() !== 'none') {
+        queryParts.push(brand);
+      }
+    }
+
+    // Model
+    if (product.model) {
+      const model = String(product.model).trim();
+      if (model && model.toLowerCase() !== 'none') {
+        queryParts.push(model);
+      }
+    }
+
+    // Model Variant
+    if (product.model_variant) {
+      const variant = String(product.model_variant).trim();
+      if (variant && variant.toLowerCase() !== 'none') {
+        queryParts.push(variant);
+      }
+    }
+
+    // Storage (for electronics)
+    if (product.storage) {
+      const storage = String(product.storage).trim();
+      if (storage && storage.toLowerCase() !== 'none') {
+        queryParts.push(storage);
+      }
+    }
+
+    // Size
+    if (product.size) {
+      const size = String(product.size).trim();
+      if (size && size.toLowerCase() !== 'none') {
+        queryParts.push(size);
+      }
+    }
+
+    let searchQuery = queryParts.join(' ');
+
+    if (searchQuery.length > 200) {
+      searchQuery = searchQuery.substring(0, 200);
+    }
+
+    return searchQuery.trim();
+  }
+
+  /**
+   * Call eBay API to search for products
+   */
+  async callEbayAPI(searchQuery: string, limit: number = 5): Promise<EbayApiResponse> {
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${this.ebayToken}`,
+      'Content-Type': 'application/json',
+      'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US'
+    };
+
+    const params = new URLSearchParams({
+      'q': searchQuery,
+      'limit': limit.toString()
+    });
+
+    try {
+      const response = await fetch(`${this.apiBaseUrl}?${params.toString()}`, {
+        method: 'GET',
+        headers: headers,
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      });
+
+      if (response.status === 200) {
+        return await response.json();
+      } else {
+        const errorText = await response.text();
+        let errorMessage = errorText;
+        
+        // Try to parse JSON error response for better error messages
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.errors && Array.isArray(errorJson.errors) && errorJson.errors.length > 0) {
+            const firstError = errorJson.errors[0];
+            errorMessage = `eBay API Error (${firstError.errorId || response.status}): ${firstError.message || firstError.longMessage || errorText}`;
+          }
+        } catch {
+          // If parsing fails, use the raw error text
+          errorMessage = errorText;
+        }
+        
+        console.error(`eBay API Error: ${response.status} - ${errorMessage.substring(0, 200)}`);
+        return {
+          error: errorMessage,
+          status_code: response.status
+        };
+      }
+    } catch (error) {
+      console.error('eBay API Request failed:', error);
+      return {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * Check if item is valid based on category IDs
+   */
+  isValidItem(item: EbayItem): boolean {
+    // Check categories array
+    if (item.categories) {
+      for (const category of item.categories) {
+        const categoryId = String(category.categoryId || '');
+        if (this.validCategoryIds.has(categoryId)) {
+          return true;
+        }
+      }
+    }
+
+    // Check leafCategoryIds array
+    if (item.leafCategoryIds) {
+      for (const categoryId of item.leafCategoryIds) {
+        if (this.validCategoryIds.has(String(categoryId))) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Extract and format eBay items
+   */
+  extractEbayItems(ebayResponse: EbayApiResponse): { validItems: ExtractedItem[]; invalidItems: ExtractedItem[] } {
+    const validItems: ExtractedItem[] = [];
+    const invalidItems: ExtractedItem[] = [];
+
+    if (!ebayResponse.itemSummaries) {
+      return { validItems, invalidItems };
+    }
+
+    for (const item of ebayResponse.itemSummaries) {
+      // Extract categories information
+      const categoriesInfo: Array<{ category_id: string; category_name: string }> = [];
+      if (item.categories) {
+        for (const cat of item.categories) {
+          categoriesInfo.push({
+            category_id: String(cat.categoryId || 'N/A'),
+            category_name: String(cat.categoryName || 'N/A')
+          });
+        }
+      }
+
+      const extractedItem: ExtractedItem = {
+        item_id: String(item.itemId || 'N/A'),
+        title: String(item.title || 'N/A'),
+        item_url: String(item.itemWebUrl || 'N/A'),
+        categories: categoriesInfo,
+        leaf_category_ids: item.leafCategoryIds ? item.leafCategoryIds.map(id => String(id)) : [],
+        price_value: item.price?.value || 'N/A',
+        price_currency: item.price?.currency || 'USD',
+        condition: String(item.condition || 'N/A'),
+        condition_id: String(item.conditionId || 'N/A'),
+        primary_image_url: item.image?.imageUrl || 'N/A',
+        thumbnail_images: item.thumbnailImages || [],
+        additional_images: item.additionalImages || [],
+        marketing_price_original: item.marketingPrice?.originalPrice?.value || 'N/A',
+        marketing_price_discount: item.marketingPrice?.discountPercentage || 'N/A',
+        unit_price: item.unitPrice?.value || 'N/A',
+        available_quantity: item.availableQuantity || 'N/A',
+        item_href: item.itemHref || 'N/A',
+        epid: String(item.epid || 'N/A'),
+        item_group_type: String(item.itemGroupType || 'N/A'),
+        item_group_href: item.itemGroupHref || 'N/A',
+      };
+
+      if (this.isValidItem(item)) {
+        validItems.push(extractedItem);
+      } else {
+        invalidItems.push(extractedItem);
+      }
+    }
+
+    return { validItems, invalidItems };
+  }
+
+  /**
+   * Calculate average price from valid items
+   */
+  calculateAveragePrice(items: ExtractedItem[]): PriceStatistics {
+    if (items.length === 0) {
+      return {
+        average_price: 0,
+        min_price: 0,
+        max_price: 0,
+        count: 0,
+        currency: 'USD'
+      };
+    }
+
+    const prices: number[] = [];
+    let currency = 'USD';
+
+    for (const item of items) {
+      const priceValue = item.price_value;
+      if (priceValue !== 'N/A' && typeof priceValue !== 'string') {
+        prices.push(priceValue);
+        currency = item.price_currency;
+      } else if (typeof priceValue === 'string' && priceValue !== 'N/A') {
+        const parsedPrice = parseFloat(priceValue);
+        if (!isNaN(parsedPrice)) {
+          prices.push(parsedPrice);
+          currency = item.price_currency;
+        }
+      }
+    }
+
+    if (prices.length === 0) {
+      return {
+        average_price: 0,
+        min_price: 0,
+        max_price: 0,
+        count: 0,
+        currency: currency
+      };
+    }
+
+    return {
+      average_price: Math.round((prices.reduce((a, b) => a + b, 0) / prices.length) * 100) / 100,
+      min_price: Math.round(Math.min(...prices) * 100) / 100,
+      max_price: Math.round(Math.max(...prices) * 100) / 100,
+      count: prices.length,
+      currency: currency
+    };
+  }
+
+  /**
+   * Process a single product and return pricing data
+   */
+  async processProduct(product: ProductData): Promise<{
+    product_uuid: string;
+    search_query: string;
+    ebay_items_count: number;
+    ebay_valid_items: ExtractedItem[];
+    price_statistics: PriceStatistics;
+    success: boolean;
+    error?: string;
+  }> {
+    try {
+      // Format search query
+      const searchQuery = this.formatSearchQuery(product);
+      
+      if (!searchQuery) {
+        return {
+          product_uuid: product.uuid,
+          search_query: '',
+          ebay_items_count: 0,
+          ebay_valid_items: [],
+          price_statistics: {
+            average_price: 0,
+            min_price: 0,
+            max_price: 0,
+            count: 0,
+            currency: 'USD'
+          },
+          success: false,
+          error: 'No search query could be generated from product data'
+        };
+      }
+
+      // Call eBay API
+      const ebayResponse = await this.callEbayAPI(searchQuery);
+
+      if (ebayResponse.error) {
+        return {
+          product_uuid: product.uuid,
+          search_query: searchQuery,
+          ebay_items_count: 0,
+          ebay_valid_items: [],
+          price_statistics: {
+            average_price: 0,
+            min_price: 0,
+            max_price: 0,
+            count: 0,
+            currency: 'USD'
+          },
+          success: false,
+          error: ebayResponse.error
+        };
+      }
+
+      // Extract and filter items
+      const { validItems, invalidItems } = this.extractEbayItems(ebayResponse);
+
+      // Calculate average price
+      const priceStats = this.calculateAveragePrice(validItems);
+
+      return {
+        product_uuid: product.uuid,
+        search_query: searchQuery,
+        ebay_items_count: validItems.length,
+        ebay_valid_items: validItems,
+        price_statistics: priceStats,
+        success: true
+      };
+    } catch (error) {
+      console.error('Error processing product:', error);
+      return {
+        product_uuid: product.uuid,
+        search_query: '',
+        ebay_items_count: 0,
+        ebay_valid_items: [],
+        price_statistics: {
+          average_price: 0,
+          min_price: 0,
+          max_price: 0,
+          count: 0,
+          currency: 'USD'
+        },
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+}
+

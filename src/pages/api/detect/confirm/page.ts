@@ -84,8 +84,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
     } else {
       // Guest user: allow access to guest detections (userId is null)
+      // Use the provided UUID to find the detection
       detection = await em.findOne(ProductDetection, { 
-        uuid: null,
+        uuid: uuid,
         userId: null
       });
     }

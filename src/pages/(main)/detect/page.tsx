@@ -14,6 +14,7 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router";
 import SampleImages from "@/components/SampleImages";
+import ProductPricing from "@/components/ProductPricing";
 
 const Page = () => {
   const navigate = useNavigate();
@@ -641,6 +642,19 @@ const Page = () => {
                     </div>
                   )}
                 </Stack>
+              </Box>
+            )}
+
+            {/* Product Pricing Section - Show after confirmation */}
+            {submitSuccess?.uuid && submitSuccess?.status === 'completed' && (
+              <Box mt="md">
+                <ProductPricing 
+                  uuid={submitSuccess.uuid}
+                  onPricingUpdated={(data) => {
+                    // Optional: You can update local state or show additional notifications here
+                    console.log("Pricing updated:", data);
+                  }}
+                />
               </Box>
             )}
 

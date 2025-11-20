@@ -93,4 +93,23 @@ export class ProductDetection {
 
   @Property({ fieldName: 'userId', type: 'string', length: 36, nullable: true, columnType: 'varchar(36)' })
   userId?: string | null;
+
+  // Pricing fields
+  @Property({ type: 'float', nullable: true })
+  average_price?: number;
+
+  @Property({ type: 'float', nullable: true })
+  min_price?: number;
+
+  @Property({ type: 'float', nullable: true })
+  max_price?: number;
+
+  @Property({ type: 'string', nullable: true, default: 'USD' })
+  price_currency?: string;
+
+  @Property({ type: 'integer', nullable: true })
+  ebay_items_count?: number;
+
+  @Property({ type: 'datetime', nullable: true })
+  pricing_updated_at?: Date;
 }
