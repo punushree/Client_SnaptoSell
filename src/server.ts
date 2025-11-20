@@ -6,24 +6,12 @@ import { getOrm } from "./lib/server/db/index.ts";
 // import { auth } from "./lib/server/auth/index.ts";
 
 export default await createHonoServer({
-    async configure(app) {
-        app.use("*", async (c, next) => {
-            try {
-                const orm = await getOrm();
-                RequestContext.create(orm.em, () => { });
-                return next()
-            } catch (error) {
-                console.log(error);
-                return next()
-            }
-
-        });
-        
-        // // Mount BetterAuth routes
-        // app.all("/api/auth/*", async (c) => {
-        //     return auth.handler(c.req.raw);
-        // });
-    },
-    useWebSocket: true,
-
+    async beforeAll(app) {
+        try {
+            const orm = await getOrm();
+            RequestContext.create(orm.em, () => { });
+        } catch (error) {
+            console.log(error);
+        }
+    }
 });

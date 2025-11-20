@@ -3,10 +3,13 @@
  * Handles product search and price calculation from eBay API
  */
 
-import * as dotenv from "dotenv";
+import EBAY_SCOPES from '../../../config/ebay-scopes';
 
-// Load environment variables
-dotenv.config();
+interface EbayTokenResponse {
+  access_token: string;
+  expires_in: number;
+  token_type: string;
+}
 
 interface EbayItem {
   itemId: string;
@@ -88,8 +91,10 @@ interface ProductData {
 }
 
 export class EbayAPIService {
-  private ebayToken: string;
+  private ebayToken: string = '';
+  private tokenExpiresAt: number = 0;
   private apiBaseUrl: string = "https://api.ebay.com/buy/browse/v1/item_summary/search";
+  private tokenEndpoint: string = "https://api.ebay.com/identity/v1/oauth2/token";
   
   // eBay Category IDs for devices only
   private validCategoryIds: Set<string> = new Set([
@@ -98,26 +103,65 @@ export class EbayAPIService {
     '171485',    // Tablets & eBook Readers
   ]);
 
-  constructor(ebayToken?: string) {
-    // Use provided token or read from environment variable
-    const token = ebayToken || process.env.EBAY_TOKEN;
-    
-    if (!token || token.trim() === '') {
-      // Provide helpful error message
-      const errorMsg = ebayToken 
-        ? 'eBay token is required and cannot be empty.'
-        : 'eBay token is required. Please set EBAY_TOKEN in your .env file. ' +
-          `Current EBAY_TOKEN value: ${process.env.EBAY_TOKEN ? 'exists but is empty' : 'not found'}`;
-      
-      console.error('EbayAPIService initialization error:', {
-        hasTokenParam: !!ebayToken,
-        hasEnvVar: !!process.env.EBAY_TOKEN,
-        envVarLength: process.env.EBAY_TOKEN?.length || 0
-      });
-      
-      throw new Error(errorMsg);
+  constructor() {
+    // Validate required environment variables
+    if (!process.env.EBAY_CLIENT_ID || !process.env.EBAY_CLIENT_SECRET || !process.env.EBAY_REFRESH_TOKEN) {
+      throw new Error(
+        'Missing required eBay credentials. Please ensure EBAY_CLIENT_ID, EBAY_CLIENT_SECRET, and EBAY_REFRESH_TOKEN are set in your .env file.'
+      );
     }
-    this.ebayToken = token;
+  }
+
+  /**
+   * Generate access token from refresh token
+   */
+  private async getAccessToken(): Promise<string> {
+    // Check if we have a valid cached token
+    if (this.ebayToken && Date.now() < this.tokenExpiresAt) {
+      return this.ebayToken;
+    }
+
+    try {
+      const clientId = process.env.EBAY_CLIENT_ID!;
+      const clientSecret = process.env.EBAY_CLIENT_SECRET!;
+      const refreshToken = process.env.EBAY_REFRESH_TOKEN!;
+
+      // Create authorization header
+      const authString = `${clientId}:${clientSecret}`;
+      const encodedAuth = Buffer.from(authString).toString('base64');
+
+      const headers = new Headers();
+      headers.append("Content-Type", "application/x-www-form-urlencoded");
+      headers.append("Authorization", `Basic ${encodedAuth}`);
+
+      const urlencoded = new URLSearchParams();
+      urlencoded.append("grant_type", "refresh_token");
+      urlencoded.append("refresh_token", refreshToken);
+      urlencoded.append("scope", EBAY_SCOPES);
+
+      const response = await fetch(this.tokenEndpoint, {
+        method: "POST",
+        headers: headers,
+        body: urlencoded,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to get access token: ${response.status} - ${errorText}`);
+      }
+
+      const tokenData: EbayTokenResponse = await response.json();
+      
+      // Cache the token with expiration (subtract 60 seconds as buffer)
+      this.ebayToken = tokenData.access_token;
+      this.tokenExpiresAt = Date.now() + (tokenData.expires_in - 60) * 1000;
+
+      console.log('Successfully obtained eBay access token');
+      return this.ebayToken;
+    } catch (error) {
+      console.error('Error obtaining eBay access token:', error);
+      throw new Error(`Failed to obtain eBay access token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   /**
@@ -187,8 +231,11 @@ export class EbayAPIService {
    * Call eBay API to search for products
    */
   async callEbayAPI(searchQuery: string, limit: number = 5): Promise<EbayApiResponse> {
+    // Get fresh access token
+    const accessToken = await this.getAccessToken();
+
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${this.ebayToken}`,
+      'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US'
     };

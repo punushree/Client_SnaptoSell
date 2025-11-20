@@ -5,20 +5,24 @@
  */
 
 import type { ActionFunctionArgs } from "react-router";
-import * as dotenv from "dotenv";
 import { getOrm } from "@/lib/server/db";
 import { ProductDetection } from "@/lib/server/entities/ProductDetection";
 import { getCurrentUserId } from "@/lib/server/auth/getSession";
 import { EbayAPIService } from "@/lib/server/services/ebayApiService";
 
 // Ensure environment variables are loaded
-dotenv.config();
 
 interface ProcessPricingRequest {
   uuid: string;
 }
 
+export const loader = () => {
+  console.log(process.env);
+return {}
+}
+
 export const action = async ({ request }: ActionFunctionArgs) => {
+  
   // Only accept POST requests
   if (request.method !== 'POST') {
     return Response.json(
@@ -79,17 +83,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       );
     }
 
-    // Initialize eBay API service (reads token from .env file automatically)
+    // Initialize eBay API service (uses OAuth2 refresh token flow)
     let ebayService: EbayAPIService;
     try {
-      ebayService = new EbayAPIService(); // Token will be read from process.env.EBAY_TOKEN
+      ebayService = new EbayAPIService();
     } catch (error) {
       console.error('Failed to initialize eBay API service:', error);
       return Response.json(
         {
           success: false,
           error: 'Failed to initialize eBay API service',
-          details: error instanceof Error ? error.message : 'Unknown error. Please ensure EBAY_TOKEN is set in your .env file.'
+          details: error instanceof Error ? error.message : 'Unknown error. Please ensure EBAY_CLIENT_ID, EBAY_CLIENT_SECRET, and EBAY_REFRESH_TOKEN are set in your .env file.'
         },
         { status: 500 }
       );
@@ -118,10 +122,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         {
           success: false,
           error: isAuthError 
-            ? 'eBay API authentication failed. Please check your EBAY_TOKEN.'
+            ? 'eBay API authentication failed. Please check your eBay OAuth2 credentials.'
             : result.error || 'Failed to process pricing',
           details: isAuthError
-            ? 'The eBay API token may be expired or invalid. Please update the EBAY_TOKEN environment variable with a valid token.'
+            ? 'Failed to authenticate with eBay API. Please verify that EBAY_CLIENT_ID, EBAY_CLIENT_SECRET, and EBAY_REFRESH_TOKEN are correctly set in your .env file.'
             : undefined,
           data: {
             uuid: detection.uuid,

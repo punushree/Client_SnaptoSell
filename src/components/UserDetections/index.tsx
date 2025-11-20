@@ -23,7 +23,6 @@ import {
   Center,
   Modal,
   Divider,
-  Timeline,
 } from "@mantine/core";
 import {
   IconAlertCircle,
@@ -31,7 +30,6 @@ import {
   IconX,
   IconClock,
   IconPhoto,
-  IconInfoCircle,
 } from "@tabler/icons-react";
 import { authClient } from "@/lib/client/auth";
 import { useNavigate } from "react-router";

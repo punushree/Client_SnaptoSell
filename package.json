@@ -7,10 +7,12 @@
     "dev": "react-router dev",
     "start": "node ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
-    "migration:create": "tsx ./node_modules/.bin/mikro-orm migration:create",
-    "migration:up": "tsx ./node_modules/.bin/mikro-orm migration:up",
-    "migration:down": "tsx ./node_modules/.bin/mikro-orm migration:down",
-    "cache:generate": "tsx ./node_modules/.bin/mikro-orm cache:generate"
+    "mikro-orm": "cross-env tsx ./node_modules/.bin/mikro-orm",
+    "migration:create": "mikro-orm migration:create",
+    "migration:up": "mikro-orm migration:up",
+    "migration:down": "mikro-orm migration:down",
+    "cache:generate": "mikro-orm cache:generate",
+    "debug": "mikro-orm debug"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.934.0",
@@ -53,6 +55,7 @@
     "@types/node": "^24",
     "@types/react": "^19.2.6",
     "@types/react-dom": "^19.2.3",
+    "cross-env": "^7.0.3",
     "eslint": "^9.39.1",
     "eslint-config-mantine": "^4.0.3",
     "eslint-plugin-jsx-a11y": "^6.10.2",
