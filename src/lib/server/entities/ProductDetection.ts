@@ -90,4 +90,7 @@ export class ProductDetection {
 
    @Property({ type: 'text', nullable: true })
    gpu?: string;
+
+  @Property({ fieldName: 'userId', type: 'string', length: 36, nullable: true, columnType: 'varchar(36)' })
+  userId?: string | null;
 }

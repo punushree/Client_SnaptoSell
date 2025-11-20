@@ -8,6 +8,7 @@
 import type { ActionFunctionArgs } from "react-router";
 import { getOrm } from "@/lib/server/db";
 import { ProductDetection } from "@/lib/server/entities/ProductDetection";
+import { getCurrentUserId } from "@/lib/server/auth/getSession";
 
 interface ConfirmationRequest {
   uuid: string;
@@ -42,6 +43,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
+    // Get current user ID from session (optional for confirmation)
+    // Guest users can confirm their detections too
+    const userId = await getCurrentUserId(request);
+
     // Parse request body
     const body: ConfirmationRequest = await request.json();
     const { uuid, isCorrect, updatedData } = body;
@@ -66,10 +71,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const em = orm.em.fork();
 
     // Find the product detection record
-    const detection = await em.findOne(ProductDetection, { uuid });
+    // If user is authenticated, only find detections that belong to them
+    // If user is not authenticated (guest), allow access to any detection with null userId
+    // (Guests can confirm their own detections using the UUID)
+    let detection;
+    
+    if (userId) {
+      // Authenticated user: only allow access to their own detections
+      detection = await em.findOne(ProductDetection, { 
+        uuid: uuid,
+        userId: userId
+      });
+    } else {
+      // Guest user: allow access to guest detections (userId is null)
+      detection = await em.findOne(ProductDetection, { 
+        uuid: null,
+        userId: null
+      });
+    }
+    
     if (!detection) {
       return Response.json(
-        { error: 'Product detection not found' },
+        { error: 'Product detection not found or you do not have permission to access it.' },
         { status: 404 }
       );
     }
@@ -106,13 +129,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       if (updatedData.ram) {
-        detection.storage = updatedData.ram.trim();
+        detection.ram = updatedData.ram.trim();
       }
       if (updatedData.processor) {
-        detection.storage = updatedData.processor.trim();
+        detection.processor = updatedData.processor.trim();
       }
       if (updatedData.gpu) {
-        detection.storage = updatedData.gpu.trim();
+        detection.gpu = updatedData.gpu.trim();
       }
 
       if (updatedData.model) {
@@ -157,13 +180,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         detection.storage = updatedData.storage.trim();
       }
       if (updatedData.ram) {
-        detection.storage = updatedData.ram.trim();
+        detection.ram = updatedData.ram.trim();
       }
       if (updatedData.processor) {
-        detection.storage = updatedData.processor.trim();
+        detection.processor = updatedData.processor.trim();
       }
       if (updatedData.gpu) {
-        detection.storage = updatedData.gpu.trim();
+        detection.gpu = updatedData.gpu.trim();
       }
       if (updatedData.model) {
         detection.model = updatedData.model.trim();

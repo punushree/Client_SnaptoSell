@@ -12,9 +12,11 @@ import {
   IconCamera, IconCapture, IconAlertCircle,
   IconTrash, IconX, IconCloudUpload
 } from "@tabler/icons-react";
+import { useNavigate } from "react-router";
 import SampleImages from "@/components/SampleImages";
 
 const Page = () => {
+  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -687,7 +689,7 @@ const Page = () => {
             )}
 
             {/* Button to start new submission */}
-            <Group justify="center" mt="xl">
+            <Group justify="center" mt="xl" gap="md">
               <Button
                 color="yellow"
                 variant="light"
@@ -701,6 +703,14 @@ const Page = () => {
                 }}
               >
                 New Search
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigate('/my-detections');
+                }}
+              >
+                View All My Detections
               </Button>
             </Group>
           </div>

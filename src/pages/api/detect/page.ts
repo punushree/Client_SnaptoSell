@@ -16,7 +16,7 @@ import { getOrm } from "@/lib/server/db";
 import { ProductDetection } from "@/lib/server/entities/ProductDetection";
 import { uploadMultipleToS3 } from "@/lib/server/s3";
 import { analyzeProductImages } from "@/lib/server/openai";
-import { Processor } from "postcss";
+import { getCurrentUserId } from "@/lib/server/auth/getSession";
 
 interface UploadedFile {
   buffer: Buffer;
@@ -70,6 +70,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
+    // Get current user ID from session (optional - allows guest submissions)
+    const userId = await getCurrentUserId(request);
+    // Note: userId can be null for unauthenticated users - they can still submit images
+
     // Parse form data
     const { files, description } = await parseMultipartFormData(request);
 
@@ -100,12 +104,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const orm = await getOrm();
     const em = orm.em.fork();
 
-    // Create initial detection record
+    // Create initial detection record with user ID (if authenticated)
+    // userId can be null for guest submissions - explicitly set to null for guests
     const detection = em.create(ProductDetection, {
       inputDescription: trimmedDescription,
-      status: 'pending',
-      inputImages: [],
+      status: 'pending' as const,
+      inputImages: [] as string[],
       userConfirmed: false,
+      userId: userId ?? null, // Use null for guest users (not undefined)
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -170,6 +176,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           analysis: analysisResult.analysis,
           summary: analysisResult.summary,
           images: detection.inputImages,
+          // Note: userId is not returned for security, but it's stored in the database
         },
       });
 

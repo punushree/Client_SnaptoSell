@@ -75,7 +75,10 @@ const Header = () => {
                 </Menu.Target>
                 <Menu.Dropdown>
                   <Menu.Item component={Link} to="/detect">
-                    Dashboard
+                    New Detection
+                  </Menu.Item>
+                  <Menu.Item component={Link} to="/my-detections">
+                    My Detections
                   </Menu.Item>
                   <Menu.Divider />
                   <Menu.Item color="red" onClick={handleSignOut}>
@@ -164,7 +167,17 @@ const Header = () => {
                 onClick={closeDrawer}
                 mb="xs"
               >
-                Dashboard
+                New Detection
+              </Button>
+              <Button
+                component={Link}
+                to="/my-detections"
+                variant="light"
+                fullWidth
+                onClick={closeDrawer}
+                mb="xs"
+              >
+                My Detections
               </Button>
               <Button
                 variant="light"
