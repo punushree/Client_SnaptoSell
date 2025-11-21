@@ -124,95 +124,111 @@ const Header = () => {
         hiddenFrom="md"
         zIndex={1000000}
       >
-        <ScrollArea h="calc(100vh - 100px)" mx="-md" px="md">
-          <Stack gap="xs" mt="md">
-            <Link to="/" className={classes.mobileLink} onClick={closeDrawer}>
-              Home
-            </Link>
-            <Link to="/features" className={classes.mobileLink} onClick={closeDrawer}>
-              Features
-            </Link>
-            <Link to="/how-it-works" className={classes.mobileLink} onClick={closeDrawer}>
-              How It Works
-            </Link>
-            <Link to="/scam-database" className={classes.mobileLink} onClick={closeDrawer}>
-              Scam Database
-            </Link>
-            <Link to="/waitlist" className={classes.mobileLink} onClick={closeDrawer}>
-              Join Waitlist
-            </Link>
+           {isLoggedIn ? (
+          <Stack gap="md" mt="md">
+            {/* User Profile Section - Shows First */}
+            <Group gap="sm" p="sm" style={{ borderRadius: 8, backgroundColor: "var(--mantine-color-gray-0)" }}>
+              <Avatar size="md" radius="xl">
+                {session.user.name?.charAt(0).toUpperCase() || session.user.email?.charAt(0).toUpperCase()}
+              </Avatar>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Text size="sm" fw={500} truncate>
+                  {session.user.name || session.user.email}
+                </Text>
+                <Text size="xs" c="dimmed" truncate>
+                  {session.user.email}
+                </Text>
+              </div>
+            </Group>
+
+            <Stack gap="2px" mt="2%">
+              <Link to="/" className={classes.mobileLink} onClick={closeDrawer}>
+                Home
+              </Link>
+              <Link to="/features" className={classes.mobileLink} onClick={closeDrawer}>
+                Features
+              </Link>
+              <Link to="/how-it-works" className={classes.mobileLink} onClick={closeDrawer}>
+                How It Works
+              </Link>
+              <Link to="/scam-database" className={classes.mobileLink} onClick={closeDrawer}>
+                Scam Database
+              </Link>
+            </Stack>
+
+            <Button
+              component={Link}
+              to="/detect"
+              fullWidth
+              onClick={closeDrawer}
+              mb="xs"
+            >
+              New Detection
+            </Button>
+            <Button
+              component={Link}
+              to="/my-detections"
+              variant="light"
+              fullWidth
+              onClick={closeDrawer}
+              mb="xs"
+            >
+              My Detections
+            </Button>
+            <Button
+              variant="light"
+              color="red"
+              fullWidth
+              onClick={() => {
+                handleSignOut();
+                closeDrawer();
+              }}
+            >
+              Sign Out
+            </Button>
           </Stack>
+        ) : (
+          
+            <>
+            <Stack gap="1px" mt="2%">
+                <Link to="/" className={classes.mobileLink} onClick={closeDrawer}>
+                  Home
+                </Link>
+                <Link to="/features" className={classes.mobileLink} onClick={closeDrawer}>
+                  Features
+                </Link>
+                <Link to="/how-it-works" className={classes.mobileLink} onClick={closeDrawer}>
+                  How It Works
+                </Link>
+                <Link to="/scam-database" className={classes.mobileLink} onClick={closeDrawer}>
+                  Scam Database
+                </Link>
+              </Stack>
 
-          <Divider my="md" />
+              <Stack gap="sm" mt="md">
+                <Button
+                  variant="default"
+                  component={Link}
+                  to={"/sign-in"}
+                  fullWidth
+                  onClick={closeDrawer}
+                >
+                  Sign In
+                </Button>
+                <Button
+                  component={Link}
+                  to={"/register"}
+                  fullWidth
+                  onClick={closeDrawer}
+                >
+                  Register
+                </Button>
+              </Stack>
+            </>
 
-          {isLoggedIn ? (
-            <Stack gap="md" mt="md">
-              <Group gap="sm" p="sm" style={{ borderRadius: 8, backgroundColor: "var(--mantine-color-gray-0)" }}>
-                <Avatar size="md" radius="xl">
-                  {session.user.name?.charAt(0).toUpperCase() || session.user.email?.charAt(0).toUpperCase()}
-                </Avatar>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text size="sm" fw={500} truncate>
-                    {session.user.name || session.user.email}
-                  </Text>
-                  <Text size="xs" c="dimmed" truncate>
-                    {session.user.email}
-                  </Text>
-                </div>
-              </Group>
-              <Button
-                component={Link}
-                to="/detect"
-                fullWidth
-                onClick={closeDrawer}
-                mb="xs"
-              >
-                New Detection
-              </Button>
-              <Button
-                component={Link}
-                to="/my-detections"
-                variant="light"
-                fullWidth
-                onClick={closeDrawer}
-                mb="xs"
-              >
-                My Detections
-              </Button>
-              <Button
-                variant="light"
-                color="red"
-                fullWidth
-                onClick={() => {
-                  handleSignOut();
-                  closeDrawer();
-                }}
-              >
-                Sign Out
-              </Button>
-            </Stack>
-          ) : (
-            <Stack gap="sm" mt="md">
-              <Button
-                variant="default"
-                component={Link}
-                to={"/sign-in"}
-                fullWidth
-                onClick={closeDrawer}
-              >
-                Sign In
-              </Button>
-              <Button
-                component={Link}
-                to={"/register"}
-                fullWidth
-                onClick={closeDrawer}
-              >
-                Register
-              </Button>
-            </Stack>
-          )}
-        </ScrollArea>
+          
+        )}
+          
       </Drawer>
     </Box>
   );

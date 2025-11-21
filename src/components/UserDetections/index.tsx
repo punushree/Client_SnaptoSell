@@ -229,7 +229,8 @@ const UserDetections = () => {
   }
 
   return (
-    <Container size="lg" py="xl">
+    // <Container size="xl" py="xl">
+    <Container size="auto" style={{ maxWidth: "1420px" }}>
       <Group justify="space-between" mb="xl">
         <div>
           <Title order={2}>My Product Detections</Title>
@@ -321,7 +322,7 @@ const UserDetections = () => {
               {/* Quick Details */}
               {(detection.storage || detection.color_variants || detection.condition_rating) && (
                 <Group gap="xs" mt="xs">
-                  {detection.storage && (
+                  {/* {detection.storage && (
                     <Badge size="sm" variant="outline">
                       {detection.storage}
                     </Badge>
@@ -330,7 +331,7 @@ const UserDetections = () => {
                     <Badge size="sm" variant="outline">
                       {detection.color_variants}
                     </Badge>
-                  )}
+                  )} */}
                   {detection.condition_rating && (
                     <Badge size="sm" variant="outline" color="orange">
                       Condition: {detection.condition_rating}

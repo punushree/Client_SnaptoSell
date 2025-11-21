@@ -36,7 +36,7 @@ const Page = () => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [confirmationError, setConfirmationError] = useState<string | null>(null);
-  
+
   // Form fields for editing product information
   const [editedProduct, setEditedProduct] = useState({
     identified_product: "",
@@ -46,11 +46,11 @@ const Page = () => {
     condition_rating: "",
     estimated_year: "",
     short_description: "",
-     storage: "",
+    storage: "",
     model: "",
-    model_variant : "",
-    carrier : "",
-    connectivity :"",
+    model_variant: "",
+    carrier: "",
+    connectivity: "",
     ram: "",
     processor: "",
     gpu: "",
@@ -287,14 +287,14 @@ const Page = () => {
           condition_rating: result.data.analysis?.condition_rating || "",
           estimated_year: result.data.analysis?.estimated_year || "",
           short_description: result.data.analysis?.short_description || "",
-           storage: result.data.analysis?.storage || "",
-           model: result.data.analysis?.model || "",
-           model_variant: result.data.analysis?.model_variant || "",
-           carrier : result.data.analysis?.carrier || "",
-           connectivity : result.data.analysis?.connectivity || "",
-           ram : result.data.analysis?.ram || "",
-           processor : result.data.analysis?.processor || "",
-           gpu : result.data.analysis?.gpu || "",
+          storage: result.data.analysis?.storage || "",
+          model: result.data.analysis?.model || "",
+          model_variant: result.data.analysis?.model_variant || "",
+          carrier: result.data.analysis?.carrier || "",
+          connectivity: result.data.analysis?.connectivity || "",
+          ram: result.data.analysis?.ram || "",
+          processor: result.data.analysis?.processor || "",
+          gpu: result.data.analysis?.gpu || "",
         });
         setShowConfirmation(true);
       } else {
@@ -374,7 +374,7 @@ const Page = () => {
           <Paper p="md" radius="md" bg="blue.0" withBorder>
             <Text fw={600} mb="md">Detected Information:</Text>
             <Stack gap="xs">
-              <div>
+              {/* <div>
                 <Text size="sm" c="dimmed">Product Name</Text>
                 <Text fw={500}>{submitSuccess?.analysis?.identified_product || "N/A"}</Text>
               </div>
@@ -382,6 +382,7 @@ const Page = () => {
                 <Text size="sm" c="dimmed">Brand</Text>
                 <Text fw={500}>{submitSuccess?.analysis?.brand || "N/A"}</Text>
               </div>
+              
               <div>
                 <Text size="sm" c="dimmed">Model</Text>
                 <Text fw={500}>{submitSuccess?.analysis?.model || "N/A"}</Text>
@@ -396,153 +397,250 @@ const Page = () => {
                   <Text component="span" c="red">*</Text>
                 </Text>
                 <Text fw={500}>{submitSuccess?.analysis?.storage || "N/A"}</Text>
+              </div> */}
+
+              <div>
+                <Text size="sm" >
+                  Product Name : <Text span fw={700}> {submitSuccess?.analysis?.identified_product || "N/A"}</Text>
+                </Text>
+              </div>
+              <div>
+                <Text size="sm" >
+                  Brand : <Text span fw={700}>{submitSuccess?.analysis?.brand || "N/A"}</Text>
+                </Text>
               </div>
 
               <div>
-                <Text size="sm" c="dimmed">RAM</Text>
-                <Text fw={500}>{submitSuccess?.analysis?.ram || "N/A"}</Text>
-              </div>
-              <div>
-                <Text size="sm" c="dimmed">Processor</Text>
-                <Text fw={500}>{submitSuccess?.analysis?.processor || "N/A"}</Text>
-              </div>
-              <div>
-                <Text size="sm" c="dimmed">GPU</Text>
-                <Text fw={500}>{submitSuccess?.analysis?.gpu || "N/A"}</Text>
+                <Text size="sm">
+                  Condition : <Text span fw={700}>{submitSuccess?.analysis?.condition_rating || "N/A"}</Text>
+                </Text>
               </div>
 
               <div>
-                <Text size="sm" c="dimmed">Color</Text>
-                <Text fw={500}>{submitSuccess?.analysis?.color_variants || "N/A"}</Text>
-              </div>
-              <div>
-                <Text size="sm" c="dimmed">Size</Text>
-                <Text fw={500}>{submitSuccess?.analysis?.size || "N/A"}</Text>
-              </div>
-              <div>
-                <Text size="sm" c="dimmed">Condition Rating</Text>
-                <Text fw={500}>{submitSuccess?.analysis?.condition_rating || "N/A"}</Text>
+                <Text size="sm">
+                  Model : <Text span fw={700}>{submitSuccess?.analysis?.model || "N/A"}</Text>
+                </Text>
               </div>
 
               <div>
-                <Text size="sm" c="dimmed">Carrier</Text>
-                <Text fw={500}>{submitSuccess?.analysis?.carrier || "N/A"}</Text>
+                <Text size="sm">
+                  Model Variant : <Text span fw={700}>{submitSuccess?.analysis?.model_variant || "N/A"}</Text>
+                </Text>
+              </div>
+
+              <div>
+                <Text size="sm">
+                  Storage : <Text span fw={700}>{submitSuccess?.analysis?.storage || "N/A"}</Text>
+                </Text>
               </div>
               <div>
-                <Text size="sm" c="dimmed">Estimated Year</Text>
-                <Text fw={500}>{submitSuccess?.analysis?.estimated_year || "N/A"}</Text>
+                <Text size="sm">
+                  Color : <Text span fw={700}>{submitSuccess?.analysis?.color_variants || "N/A"}</Text>
+                </Text>
               </div>
+
+              <div>
+                <Text size="sm">
+                  Size : <Text span fw={700}>{submitSuccess?.analysis?.size || "N/A"}</Text>
+                </Text>
+              </div>
+
+              <div>
+                <Text size="sm">
+                  RAM : <Text span fw={700}>{submitSuccess?.analysis?.ram || "N/A"}</Text>
+                </Text>
+              </div>
+
+              <div>
+                <Text size="sm">
+                  Processor : <Text span fw={700}>{submitSuccess?.analysis?.processor || "N/A"}</Text>
+                </Text>
+              </div>
+
+              <div>
+                <Text size="sm">
+                  GPU : <Text span fw={700}>{submitSuccess?.analysis?.gpu || "N/A"}</Text>
+                </Text>
+              </div>
+              <div>
+                <Text size="sm" >Carrier : <Text span fw={700}>{submitSuccess?.analysis?.carrier || "N/A"}</Text>
+                </Text>
+              </div>
+
+
+              <div>
+                <Text size="sm">
+                  Estimated Year : <Text span fw={700}>{submitSuccess?.analysis?.estimated_year || "N/A"}</Text>
+                </Text>
+              </div>
+
             </Stack>
           </Paper>
 
           <Stack gap="sm">
             <Text fw={600} size="sm">Update Information (if needed):</Text>
-            
-            <TextInput
-              label="Product Name"
+
+            {/* <TextInput
+              label="Product Name==="
               placeholder="e.g., iPhone 15 Pro"
               value={editedProduct.identified_product}
-              onChange={(e) => setEditedProduct({...editedProduct, identified_product: e.target.value})}
-            />
+              onChange={(e) => setEditedProduct({ ...editedProduct, identified_product: e.target.value })}
+            /> */}
 
-            <TextInput
-              label="Brand"
-              placeholder="e.g., Apple"
-              value={editedProduct.brand}
-              onChange={(e) => setEditedProduct({...editedProduct, brand: e.target.value})}
-            />
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}>Product Name</Text>
+              <TextInput
+                placeholder="e.g., iPhone 15 Pro"
+                value={editedProduct.identified_product}
+                onChange={(e) =>
+                  setEditedProduct({ ...editedProduct, identified_product: e.target.value })
+                }
+                style={{ width: "80%" }}
+              />
+            </Group>
 
-            <TextInput
-              label="Color"
-              placeholder="e.g., Space Black"
-              value={editedProduct.color_variants}
-              onChange={(e) => setEditedProduct({...editedProduct, color_variants: e.target.value})}
-            />
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}>Brand</Text>
+              <TextInput
+                //label="Brand"
+                placeholder="e.g., Apple"
+                value={editedProduct.brand}
+                onChange={(e) => setEditedProduct({ ...editedProduct, brand: e.target.value })}
+                style={{ width: "90%" }}
+              />
+            </Group>
 
-            <TextInput
-              label="Size"
-              placeholder="e.g., 6.1 inches"
-              value={editedProduct.size}
-              onChange={(e) => setEditedProduct({...editedProduct, size: e.target.value})}
-            />
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}> Color</Text>
+              <TextInput
+                placeholder="e.g., Space Black"
+                value={editedProduct.color_variants}
+                onChange={(e) => setEditedProduct({ ...editedProduct, color_variants: e.target.value })}
+                style={{ width: "90%" }}
+              />
+            </Group>
 
-            <NumberInput
-              label="Condition Rating"
-              placeholder="good"
-              min={1}
-              max={10}
-              value={editedProduct.condition_rating}
-                  //value={typeof editedProduct.condition_rating === 'string' && editedProduct.condition_rating === '' ? undefined : Number(editedProduct.condition_rating)}
-              onChange={(val) => setEditedProduct({...editedProduct, condition_rating: val !== null && val !== undefined ? String(val) : ""})}
-            />
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}> Size</Text>
+              <TextInput
 
-            <TextInput
-              label="Estimated Year"
-              placeholder="e.g., 2023"
-              value={editedProduct.estimated_year}
-              onChange={(e) => setEditedProduct({...editedProduct, estimated_year: e.target.value})}
-            />
-            <TextInput
-              label="Model"
-              placeholder=""
-              value={editedProduct.model}
-              onChange={(e) => setEditedProduct({...editedProduct, model: e.target.value})}
-            />
+                placeholder="e.g., 6.1 inches"
+                value={editedProduct.size}
+                onChange={(e) => setEditedProduct({ ...editedProduct, size: e.target.value })}
+                style={{ width: "90%" }}
+              />
+            </Group>
 
-            <TextInput
-              label="Model Number"
-              placeholder=""
-              value={editedProduct.model_variant}
-              onChange={(e) => setEditedProduct({...editedProduct, model_variant: e.target.value})}
-            />
-
-             <TextInput
-              label="Storage"
-              placeholder=""
-              value={editedProduct.storage}
-              onChange={(e) => setEditedProduct({...editedProduct, storage: e.target.value})}
-            />
-
-            <TextInput
-              label="RAM"
-              placeholder=""
-              value={editedProduct.ram}
-              onChange={(e) => setEditedProduct({...editedProduct, ram: e.target.value})}
-            />
-
-            <TextInput
-              label="Processor"
-              placeholder=""
-              value={editedProduct.processor}
-              onChange={(e) => setEditedProduct({...editedProduct, processor: e.target.value})}
-            />
-
-            <TextInput
-              label="GPU"
-              placeholder=""
-              value={editedProduct.gpu}
-              onChange={(e) => setEditedProduct({...editedProduct, gpu: e.target.value})}
-            />
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}> Condition Rating</Text>
+              <TextInput
+                //label="Condition Rating"
+                placeholder="good"
+                min={1}
+                max={10}
+                value={editedProduct.condition_rating}
+                //value={typeof editedProduct.condition_rating === 'string' && editedProduct.condition_rating === '' ? undefined : Number(editedProduct.condition_rating)}
+                onChange={(val) => setEditedProduct({ ...editedProduct, condition_rating: val !== null && val !== undefined ? String(val) : "" })}
+                style={{ width: "78%" }}
+              />
+            </Group>
 
 
-            <Select
-              label="Carrier"
-              placeholder=""
-              searchable
-              nothingFoundMessage="No results"
-              
-               data={["Locked", "Unlocked"]}
-              value={editedProduct.carrier}
-              onChange={(value) =>
-                setEditedProduct({ ...editedProduct, carrier: value || "" })
-              }
-            />
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}> Estimated Year</Text>
+              <TextInput
+                placeholder="e.g., 2023"
+                value={editedProduct.estimated_year}
+                onChange={(e) => setEditedProduct({ ...editedProduct, estimated_year: e.target.value })}
+                style={{ width: "80%" }}
+              />
+            </Group>
+
+
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}> Model</Text>
+              <TextInput
+                placeholder=""
+                value={editedProduct.model}
+                onChange={(e) => setEditedProduct({ ...editedProduct, model: e.target.value })}
+                style={{ width: "80%" }}
+              />
+            </Group>
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}> Model Variant </Text>
+
+              <TextInput
+                placeholder=""
+                value={editedProduct.model_variant}
+                onChange={(e) => setEditedProduct({ ...editedProduct, model_variant: e.target.value })}
+                style={{ width: "80%" }}
+              />
+            </Group>
+
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}>Storage</Text>
+              <TextInput
+                placeholder=""
+                value={editedProduct.storage}
+                onChange={(e) => setEditedProduct({ ...editedProduct, storage: e.target.value })}
+                style={{ width: "85%" }}
+              />
+            </Group>
+
+
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}> RAM</Text>
+              <TextInput
+                placeholder=""
+                value={editedProduct.ram}
+                onChange={(e) => setEditedProduct({ ...editedProduct, ram: e.target.value })}
+                style={{ width: "85%" }}
+              />
+
+            </Group>
+
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}> Processor</Text>
+              <TextInput
+                placeholder=""
+                value={editedProduct.processor}
+                onChange={(e) => setEditedProduct({ ...editedProduct, processor: e.target.value })}
+                style={{ width: "85%" }}
+              />
+            </Group>
+
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}>GPU</Text>
+              <TextInput
+                placeholder=""
+                value={editedProduct.gpu}
+                onChange={(e) => setEditedProduct({ ...editedProduct, gpu: e.target.value })}
+                style={{ width: "85%" }}
+              />
+            </Group>
+
+
+            <Group justify="space-between" >
+              <Text size="sm" fw={500}> Carrier</Text>
+              <Select
+                placeholder=""
+                searchable
+                nothingFoundMessage="No results"
+
+                data={["Locked", "Unlocked"]}
+                value={editedProduct.carrier}
+                onChange={(value) =>
+                  setEditedProduct({ ...editedProduct, carrier: value || "" })
+                }
+                style={{ width: "85%" }}
+              />
+            </Group>
 
             <Textarea
               label="Description"
               placeholder="Additional description"
               value={editedProduct.short_description}
-              onChange={(e) => setEditedProduct({...editedProduct, short_description: e.target.value})}
+              onChange={(e) => setEditedProduct({ ...editedProduct, short_description: e.target.value })}
               rows={3}
             />
           </Stack>
@@ -575,7 +673,7 @@ const Page = () => {
             <Text fw={600} mb="xs">
               {submitSuccess.userConfirmed ? "✓ Product Information Confirmed!" : "✓ Product Information Updated Successfully!"}
             </Text>
-            <Text size="md" mb="xs">Status: {submitSuccess.status}</Text>
+            <Text size="md" mb="xs">Status : <Text span fw={700}>{submitSuccess.status}</Text></Text>
 
             {/* Analysis Section */}
             {submitSuccess.analysis && (
@@ -585,60 +683,80 @@ const Page = () => {
                 </Text>
                 <Stack gap="xs">
                   <div>
-                    <Text size="sm" c="dimmed">Product Name</Text>
-                    <Text fw={500}>{submitSuccess.analysis.identified_product || "N/A"}</Text>
+                    <Text size="sm" >
+                      Product Name : <Text span fw={700}> {submitSuccess.analysis.identified_product || "N/A"}</Text>
+                    </Text>
                   </div>
                   <div>
-                    <Text size="sm" c="dimmed">Brand</Text>
-                    <Text fw={500}>{submitSuccess.analysis.brand || "N/A"}</Text>
-                  </div>
-                  <div>
-                    <Text size="sm" c="dimmed">Color</Text>
-                    <Text fw={500}>{submitSuccess.analysis.color_variants || "N/A"}</Text>
-                  </div>
-                  <div>
-                    <Text size="sm" c="dimmed">Size</Text>
-                    <Text fw={500}>{submitSuccess.analysis.size || "N/A"}</Text>
-                  </div>
-                  <div>
-                    <Text size="sm" c="dimmed">Condition</Text>
-                    <Text fw={500}>{submitSuccess.analysis.condition_rating || "N/A"}</Text>
-                  </div>
-                  <div>
-                    <Text size="sm" c="dimmed">Model</Text>
-                    <Text fw={500}>{submitSuccess.analysis.model || "N/A"}</Text>
-                  </div>
-                  <div>
-                    <Text size="sm" c="dimmed">Model Variant</Text>
-                    <Text fw={500}>{submitSuccess.analysis.model_variant || "N/A"}</Text>
-                  </div>
-                  <div>
-                    <Text size="sm" c="dimmed">Storage</Text>
-                    <Text fw={500}>{submitSuccess.analysis.storage || "N/A"}</Text>
+                    <Text size="sm" >
+                      Brand : <Text span fw={700}>{submitSuccess.analysis.brand || "N/A"}</Text>
+                    </Text>
                   </div>
 
                   <div>
-                    <Text size="sm" c="dimmed">RAM</Text>
-                    <Text fw={500}>{submitSuccess.analysis.ram || "N/A"}</Text>
+                    <Text size="sm">
+                      Condition : <Text span fw={700}>{submitSuccess.analysis.condition_rating || "N/A"}</Text>
+                    </Text>
                   </div>
 
                   <div>
-                    <Text size="sm" c="dimmed">Processer</Text>
-                    <Text fw={500}>{submitSuccess.analysis.processor || "N/A"}</Text>
+                    <Text size="sm">
+                      Model : <Text span fw={700}>{submitSuccess.analysis.model || "N/A"}</Text>
+                    </Text>
                   </div>
 
                   <div>
-                    <Text size="sm" c="dimmed">GPU</Text>
-                    <Text fw={500}>{submitSuccess.analysis.gpu || "N/A"}</Text>
+                    <Text size="sm">
+                      Model Variant : <Text span fw={700}>{submitSuccess.analysis.model_variant || "N/A"}</Text>
+                    </Text>
+                  </div>
+
+                  <div>
+                    <Text size="sm">
+                      Storage : <Text span fw={700}>{submitSuccess.analysis.storage || "N/A"}</Text>
+                    </Text>
                   </div>
                   <div>
-                    <Text size="sm" c="dimmed">Estimated Year</Text>
-                    <Text fw={500}>{submitSuccess.analysis.estimated_year || "N/A"}</Text>
+                    <Text size="sm">
+                      Color : <Text span fw={700}>{submitSuccess.analysis.color_variants || "N/A"}</Text>
+                    </Text>
                   </div>
+
+                  <div>
+                    <Text size="sm">
+                      Size : <Text span fw={700}>{submitSuccess.analysis.size || "N/A"}</Text>
+                    </Text>
+                  </div>
+                  <div>
+                    <Text size="sm">
+                      RAM : <Text span fw={700}>{submitSuccess.analysis.ram || "N/A"}</Text>
+                    </Text>
+                  </div>
+
+                  <div>
+                    <Text size="sm">
+                      Processor : <Text span fw={700}>{submitSuccess.analysis.processor || "N/A"}</Text>
+                    </Text>
+                  </div>
+
+                  <div>
+                    <Text size="sm">
+                      GPU : <Text span fw={700}>{submitSuccess.analysis.gpu || "N/A"}</Text>
+                    </Text>
+                  </div>
+
+                  <div>
+                    <Text size="sm">
+                      Estimated Year : <Text span fw={700}>{submitSuccess.analysis.estimated_year || "N/A"}</Text>
+                    </Text>
+                  </div>
+
+
                   {submitSuccess.analysis.short_description && (
                     <div>
-                      <Text size="sm" c="dimmed">Description</Text>
-                      <Text fw={500}>{submitSuccess.analysis.short_description}</Text>
+                      <Text size="sm">
+                        Description : <Text span fw={700}>{submitSuccess.analysis.short_description}</Text>
+                      </Text>
                     </div>
                   )}
                 </Stack>
@@ -648,7 +766,7 @@ const Page = () => {
             {/* Product Pricing Section - Show after confirmation */}
             {submitSuccess?.uuid && submitSuccess?.status === 'completed' && (
               <Box mt="md">
-                <ProductPricing 
+                <ProductPricing
                   uuid={submitSuccess.uuid}
                   onPricingUpdated={(data) => {
                     // Optional: You can update local state or show additional notifications here
@@ -847,9 +965,9 @@ const Page = () => {
                 wrap="wrap"
               >
                 {/* Left side - Camera and controls */}
-                <Stack 
-                  gap="md" 
-                  style={{ 
+                <Stack
+                  gap="md"
+                  style={{
                     flex: "1 1 calc(50% - 0.5rem)",
                     minWidth: "min(100%, 400px)",
                   }}
@@ -936,9 +1054,9 @@ const Page = () => {
                 </Stack>
 
                 {/* Right side - Upload options and other content */}
-                <Stack 
-                  gap="md" 
-                  style={{ 
+                <Stack
+                  gap="md"
+                  style={{
                     flex: "1 1 calc(50% - 0.5rem)",
                     minWidth: "min(100%, 400px)",
                   }}
@@ -1028,7 +1146,7 @@ const Page = () => {
                     onReject={(files) => {
                       files.forEach((file) => {
                         let reason = 'Unknown reason';
-                        
+
                         if (file.errors.length > 0) {
                           const error = file.errors[0];
                           if (error.code === 'file-too-large') {

@@ -12,6 +12,7 @@ import {
   Card,
   Grid,
   Divider,
+  Box,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -109,12 +110,12 @@ const ProductPricing = ({ uuid, onPricingUpdated }: ProductPricingProps) => {
       }
 
       if (result.success) {
-        notifications.show({
-          title: "Pricing Calculated",
-          message: `Average price: ${result.data.price_statistics.currency} ${result.data.price_statistics.average_price.toFixed(2)}`,
-          color: "green",
-          icon: <IconCheck size={16} />,
-        });
+        // notifications.show({
+        //   title: "Pricing Calculated",
+        //   message: `Average price: ${result.data.price_statistics.currency} ${result.data.price_statistics.average_price.toFixed(2)}`,
+        //   color: "green",
+        //   icon: <IconCheck size={16} />,
+        // });
 
         // Update local state with new pricing data
         setPricingData({
@@ -161,13 +162,13 @@ const ProductPricing = ({ uuid, onPricingUpdated }: ProductPricingProps) => {
   // Fetch pricing on mount, and auto-calculate if not available
   useEffect(() => {
     if (!uuid) return;
-    
+
     hasAutoCalculated.current = false;
 
     const loadPricing = async () => {
       // First, try to fetch existing pricing
       const hasPricing = await fetchPricing();
-      
+
       // If pricing doesn't exist, automatically calculate it
       if (!hasPricing && !hasAutoCalculated.current) {
         hasAutoCalculated.current = true;
@@ -216,7 +217,7 @@ const ProductPricing = ({ uuid, onPricingUpdated }: ProductPricingProps) => {
             <Title order={4} mb="xs">
               Product Pricing
             </Title>
-            <Text size="sm" c="dimmed">
+            <Text size="sx" >
               Market value based on eBay listings
             </Text>
           </div>
@@ -233,7 +234,7 @@ const ProductPricing = ({ uuid, onPricingUpdated }: ProductPricingProps) => {
           )}
         </Group>
 
-        {error && (
+        {/* {error && (
           <Alert
             icon={<IconAlertCircle size={16} />}
             title="Error"
@@ -242,6 +243,23 @@ const ProductPricing = ({ uuid, onPricingUpdated }: ProductPricingProps) => {
           >
             {error}
           </Alert>
+        )} */}
+        {error && (
+          <Box
+            style={{
+              width: "100%",
+              backgroundColor: "#ffe6e6",
+              border: "1px solid #ff4d4d",
+              padding: "10px",
+              borderRadius: "6px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <IconAlertCircle size={16} color="red" />
+            <Text c="red" size="sm">{error}</Text>
+          </Box>
         )}
 
         {pricingData?.has_pricing ? (
