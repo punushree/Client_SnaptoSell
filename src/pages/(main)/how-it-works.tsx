@@ -47,7 +47,7 @@ const HowItWorksPage: FC = () => {
   ];
 
   return (
-    <Box bg="gray.0" py="xl" id="how-it-works">
+    <Box py="xl" id="how-it-works">
       <Container size="lg" py="xl">
         <Stack align="center" mb={60}>
           <Title order={2} ta="center">
@@ -104,7 +104,7 @@ const HowItWorksPage: FC = () => {
           })}
         </SimpleGrid>
 
-        <Paper p="xl" radius="md" withBorder shadow="sm" bg="green.0">
+        <Paper p="xl" radius="md" withBorder shadow="sm">
           <Group align="flex-start">
             <ThemeIcon size={48} radius="md" color="green" variant="light">
               <IconCheck style={{ width: rem(28), height: rem(28) }} />

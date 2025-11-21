@@ -85,7 +85,7 @@ const Page: FC = () => {
       </Container>
 
       {/* The Problem Section */}
-      <Box bg="gray.0" py="xl">
+      <Box py="xl">
         <Container size="md" py="xl">
           <Paper p="xl" radius="lg" withBorder shadow="sm">
             <Group align="flex-start" mb="xl">
@@ -110,7 +110,7 @@ const Page: FC = () => {
               </Stack>
             </Group>
 
-            <Paper p="lg" radius="md" bg="gray.0" withBorder mt="xl">
+            <Paper p="lg" radius="md" withBorder mt="xl">
               <Title order={3} size="h4" mb="md">
                 Other Platforms Don't Care
               </Title>
@@ -149,7 +149,7 @@ const Page: FC = () => {
 
 
       {/* Testimonials Section */}
-      <Box bg="gray.0" py="xl">
+      <Box py="xl">
         <Container size="lg" py="xl">
           <Stack align="center" mb={60}>
             <Title order={2} ta="center">

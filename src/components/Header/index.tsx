@@ -11,8 +11,12 @@ import {
   Avatar,
   Text,
   Stack,
+  ActionIcon,
+  useComputedColorScheme,
+  useMantineColorScheme,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { IconSun, IconMoon } from "@tabler/icons-react";
 import classes from "./index.module.css";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useEffect } from "react";
@@ -25,6 +29,13 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { data: session, isPending } = authClient.useSession();
+
+  const { setColorScheme } = useMantineColorScheme({ keepTransitions: false });
+  const computedColorScheme = useComputedColorScheme('light');
+
+  const toggleColorScheme = () => {
+    setColorScheme(computedColorScheme === 'dark' ? 'light' : 'dark');
+  };
 
   useEffect(() => {
     closeDrawer();
@@ -61,6 +72,18 @@ const Header = () => {
           </Group>
 
           <Group gap="xs" visibleFrom="md" wrap="nowrap">
+            <ActionIcon
+              onClick={toggleColorScheme}
+              variant="default"
+              size="lg"
+              aria-label="Toggle color scheme"
+            >
+              {computedColorScheme === 'dark' ? (
+                <IconSun size={18} />
+              ) : (
+                <IconMoon size={18} />
+              )}
+            </ActionIcon>
             {isLoggedIn ? (
               <Menu shadow="md" width={200} position="bottom-end">
                 <Menu.Target>
@@ -124,7 +147,7 @@ const Header = () => {
         hiddenFrom="md"
         zIndex={1000000}
       >
-           {isLoggedIn ? (
+        {isLoggedIn ? (
           <Stack gap="md" mt="md">
             {/* User Profile Section - Shows First */}
             <Group gap="sm" p="sm" style={{ borderRadius: 8, backgroundColor: "var(--mantine-color-gray-0)" }}>
@@ -188,47 +211,45 @@ const Header = () => {
             </Button>
           </Stack>
         ) : (
-          
-            <>
+
+          <>
             <Stack gap="1px" mt="2%">
-                <Link to="/" className={classes.mobileLink} onClick={closeDrawer}>
-                  Home
-                </Link>
-                <Link to="/features" className={classes.mobileLink} onClick={closeDrawer}>
-                  Features
-                </Link>
-                <Link to="/how-it-works" className={classes.mobileLink} onClick={closeDrawer}>
-                  How It Works
-                </Link>
-                <Link to="/scam-database" className={classes.mobileLink} onClick={closeDrawer}>
-                  Scam Database
-                </Link>
-              </Stack>
+              <Link to="/" className={classes.mobileLink} onClick={closeDrawer}>
+                Home
+              </Link>
+              <Link to="/features" className={classes.mobileLink} onClick={closeDrawer}>
+                Features
+              </Link>
+              <Link to="/how-it-works" className={classes.mobileLink} onClick={closeDrawer}>
+                How It Works
+              </Link>
+              <Link to="/scam-database" className={classes.mobileLink} onClick={closeDrawer}>
+                Scam Database
+              </Link>
+            </Stack>
 
-              <Stack gap="sm" mt="md">
-                <Button
-                  variant="default"
-                  component={Link}
-                  to={"/sign-in"}
-                  fullWidth
-                  onClick={closeDrawer}
-                >
-                  Sign In
-                </Button>
-                <Button
-                  component={Link}
-                  to={"/register"}
-                  fullWidth
-                  onClick={closeDrawer}
-                >
-                  Register
-                </Button>
-              </Stack>
-            </>
-
-          
+            <Stack gap="sm" mt="md">
+              <Button
+                variant="default"
+                component={Link}
+                to={"/sign-in"}
+                fullWidth
+                onClick={closeDrawer}
+              >
+                Sign In
+              </Button>
+              <Button
+                component={Link}
+                to={"/register"}
+                fullWidth
+                onClick={closeDrawer}
+              >
+                Register
+              </Button>
+            </Stack>
+          </>
         )}
-          
+
       </Drawer>
     </Box>
   );

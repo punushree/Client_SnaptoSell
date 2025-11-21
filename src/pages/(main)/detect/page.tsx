@@ -932,21 +932,16 @@ const Page = () => {
             </Text>
           </div>
 
-          {showSampleImages && (
-            <Paper shadow="sm" p="md" withBorder>
-              <Group justify="space-between" mb="sm">
-                <Title order={4}>Sample Images</Title>
-                <Button
-                  variant="light"
-                  leftSection={<IconX size={16} />}
-                  onClick={() => setShowSampleImages(false)}
-                >
-                  Close
-                </Button>
-              </Group>
-              <SampleImages />
-            </Paper>
-          )}
+          {/* Sample Images Modal */}
+          <Modal
+            opened={showSampleImages}
+            onClose={() => setShowSampleImages(false)}
+            title={<Text fw={600} size="lg">Sample Images</Text>}
+            size="xl"
+            centered
+          >
+            <SampleImages />
+          </Modal>
 
           <Paper shadow="sm" p="md" withBorder>
             <Stack gap="md">

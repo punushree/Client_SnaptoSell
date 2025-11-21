@@ -1,6 +1,6 @@
 import { PassThrough } from "node:stream";
 
-import type { AppLoadContext, EntryContext } from "react-router";
+import type { AppLoadContext, EntryContext, HandleErrorFunction } from "react-router";
 import { createReadableStreamFromReadable } from "@react-router/node";
 import { ServerRouter } from "react-router";
 import { isbot } from "isbot";
@@ -8,6 +8,20 @@ import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
 
 export const streamTimeout = 5_000;
+
+export const handleError: HandleErrorFunction = (
+  error,
+  { request },
+) => {
+  // React Router may abort some interrupted requests, don't log those
+  if (!request.signal.aborted) {
+    // Handle erorr reporting here
+    // myReportError(error);
+
+    // make sure to still log the error so you can see it
+    console.error(error);
+  }
+};
 
 export default function handleRequest(
   request: Request,
