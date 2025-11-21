@@ -1,6 +1,6 @@
 import "@mantine/core/styles.css";
 import "@mantine/nprogress/styles.css";
-import '@mantine/notifications/styles.css';
+import "@mantine/notifications/styles.css";
 import "@/styles/globals.css";
 
 import {
@@ -19,15 +19,15 @@ import {
   MantineProvider,
   mantineHtmlProps,
 } from "@mantine/core";
-import { ModalsProvider } from '@mantine/modals';
-import { Notifications } from '@mantine/notifications';
+import { ModalsProvider } from "@mantine/modals";
+import { Notifications } from "@mantine/notifications";
 
 import type { Route } from "./+types/root";
 import { NavigationProgress, nprogress } from "@mantine/nprogress";
 import { useEffect } from "react";
 import NotFoundPage from "@/pages/404/page";
 
-export function meta({ }: MetaArgs) {
+export function meta({}: MetaArgs) {
   return [
     { title: "SnapToSell - Never Get Scammed on Marketplace Again" },
     {
@@ -35,7 +35,7 @@ export function meta({ }: MetaArgs) {
       content:
         "AI-powered fraud detection meets instant item pricing. Sell safely, sell smarter, sell faster.",
     },
-    { name: "robots", content: "noindex, nofollow" }
+    { name: "robots", content: "noindex, nofollow" },
   ];
 }
 
@@ -66,9 +66,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <MantineProvider defaultColorScheme="light">
           <NavigationProgress />
           <Notifications />
-          <ModalsProvider>
-            {children}
-          </ModalsProvider>
+          <ModalsProvider>{children}</ModalsProvider>
         </MantineProvider>
         <ScrollRestoration />
         <Scripts />

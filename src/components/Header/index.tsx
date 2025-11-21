@@ -2,11 +2,9 @@ import {
   Box,
   Burger,
   Button,
-  Divider,
   Drawer,
   Group,
   Image,
-  ScrollArea,
   Menu,
   Avatar,
   Text,
@@ -30,11 +28,13 @@ const Header = () => {
   const navigate = useNavigate();
   const { data: session, isPending } = authClient.useSession();
 
-  const { setColorScheme } = useMantineColorScheme({ keepTransitions: false });
-  const computedColorScheme = useComputedColorScheme('light');
+  const { setColorScheme, colorScheme } = useMantineColorScheme({
+    keepTransitions: false,
+  });
+  const computedColorScheme = useComputedColorScheme("light");
 
   const toggleColorScheme = () => {
-    setColorScheme(computedColorScheme === 'dark' ? 'light' : 'dark');
+    setColorScheme(computedColorScheme === "dark" ? "light" : "dark");
   };
 
   useEffect(() => {
@@ -55,7 +55,7 @@ const Header = () => {
         <Group justify="space-between" h="100%" gap="xs" wrap="nowrap">
           <Link to="/" style={{ display: "flex", alignItems: "center" }}>
             <Image
-              src="/assets/snaptosell-light.png"
+              src={`/assets/snaptosell-${colorScheme === "light" ? "light" : colorScheme === "dark" ? "dark" : computedColorScheme === 'dark' ? "dark" : "light"}.png`}
               alt="SnapToSell Logo"
               className={classes.headerLogo}
             />
@@ -65,10 +65,18 @@ const Header = () => {
             <Link to="/" className={classes.link}>
               Home
             </Link>
-            <Link to="/features" className={classes.link}>Features</Link>
-            <Link to="/how-it-works" className={classes.link}>How It Works</Link>
-            <Link to="/scam-database" className={classes.link}>Scam Database</Link>
-            <Link to="/waitlist" className={classes.link}>Join Waitlist</Link>
+            <Link to="/features" className={classes.link}>
+              Features
+            </Link>
+            <Link to="/how-it-works" className={classes.link}>
+              How It Works
+            </Link>
+            <Link to="/scam-database" className={classes.link}>
+              Scam Database
+            </Link>
+            <Link to="/waitlist" className={classes.link}>
+              Join Waitlist
+            </Link>
           </Group>
 
           <Group gap="xs" visibleFrom="md" wrap="nowrap">
@@ -78,7 +86,7 @@ const Header = () => {
               size="lg"
               aria-label="Toggle color scheme"
             >
-              {computedColorScheme === 'dark' ? (
+              {computedColorScheme === "dark" ? (
                 <IconSun size={18} />
               ) : (
                 <IconMoon size={18} />
@@ -89,7 +97,8 @@ const Header = () => {
                 <Menu.Target>
                   <Group gap="xs" style={{ cursor: "pointer" }} wrap="nowrap">
                     <Avatar size="sm" radius="xl">
-                      {session.user.name?.charAt(0).toUpperCase() || session.user.email?.charAt(0).toUpperCase()}
+                      {session.user.name?.charAt(0).toUpperCase() ||
+                        session.user.email?.charAt(0).toUpperCase()}
                     </Avatar>
                     <Text size="sm" fw={500} visibleFrom="lg">
                       {session.user.name || session.user.email}
@@ -111,7 +120,12 @@ const Header = () => {
               </Menu>
             ) : (
               <>
-                <Button variant="default" component={Link} to={"/sign-in"} size="sm">
+                <Button
+                  variant="default"
+                  component={Link}
+                  to={"/sign-in"}
+                  size="sm"
+                >
                   Sign In
                 </Button>
                 <Button component={Link} to={"/register"} size="sm">
@@ -150,9 +164,17 @@ const Header = () => {
         {isLoggedIn ? (
           <Stack gap="md" mt="md">
             {/* User Profile Section - Shows First */}
-            <Group gap="sm" p="sm" style={{ borderRadius: 8, backgroundColor: "var(--mantine-color-gray-0)" }}>
+            <Group
+              gap="sm"
+              p="sm"
+              style={{
+                borderRadius: 8,
+                backgroundColor: "var(--mantine-color-gray-0)",
+              }}
+            >
               <Avatar size="md" radius="xl">
-                {session.user.name?.charAt(0).toUpperCase() || session.user.email?.charAt(0).toUpperCase()}
+                {session.user.name?.charAt(0).toUpperCase() ||
+                  session.user.email?.charAt(0).toUpperCase()}
               </Avatar>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <Text size="sm" fw={500} truncate>
@@ -168,13 +190,25 @@ const Header = () => {
               <Link to="/" className={classes.mobileLink} onClick={closeDrawer}>
                 Home
               </Link>
-              <Link to="/features" className={classes.mobileLink} onClick={closeDrawer}>
+              <Link
+                to="/features"
+                className={classes.mobileLink}
+                onClick={closeDrawer}
+              >
                 Features
               </Link>
-              <Link to="/how-it-works" className={classes.mobileLink} onClick={closeDrawer}>
+              <Link
+                to="/how-it-works"
+                className={classes.mobileLink}
+                onClick={closeDrawer}
+              >
                 How It Works
               </Link>
-              <Link to="/scam-database" className={classes.mobileLink} onClick={closeDrawer}>
+              <Link
+                to="/scam-database"
+                className={classes.mobileLink}
+                onClick={closeDrawer}
+              >
                 Scam Database
               </Link>
             </Stack>
@@ -211,19 +245,30 @@ const Header = () => {
             </Button>
           </Stack>
         ) : (
-
           <>
             <Stack gap="1px" mt="2%">
               <Link to="/" className={classes.mobileLink} onClick={closeDrawer}>
                 Home
               </Link>
-              <Link to="/features" className={classes.mobileLink} onClick={closeDrawer}>
+              <Link
+                to="/features"
+                className={classes.mobileLink}
+                onClick={closeDrawer}
+              >
                 Features
               </Link>
-              <Link to="/how-it-works" className={classes.mobileLink} onClick={closeDrawer}>
+              <Link
+                to="/how-it-works"
+                className={classes.mobileLink}
+                onClick={closeDrawer}
+              >
                 How It Works
               </Link>
-              <Link to="/scam-database" className={classes.mobileLink} onClick={closeDrawer}>
+              <Link
+                to="/scam-database"
+                className={classes.mobileLink}
+                onClick={closeDrawer}
+              >
                 Scam Database
               </Link>
             </Stack>
@@ -249,7 +294,6 @@ const Header = () => {
             </Stack>
           </>
         )}
-
       </Drawer>
     </Box>
   );
