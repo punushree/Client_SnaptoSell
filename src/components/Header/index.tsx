@@ -49,13 +49,30 @@ const Header = () => {
   // Only show user info when session is loaded and user exists (after sign in)
   const isLoggedIn = !isPending && session?.user;
 
+  const ColorSchemeToggle = () => {
+    return (
+      <ActionIcon
+        onClick={toggleColorScheme}
+        variant="default"
+        size="lg"
+        aria-label="Toggle color scheme"
+      >
+        {computedColorScheme === "dark" ? (
+          <IconSun size={18} />
+        ) : (
+          <IconMoon size={18} />
+        )}
+      </ActionIcon>
+    );
+  };
+
   return (
     <Box className={classes.sticky} mb={10}>
       <header className={classes.header}>
         <Group justify="space-between" h="100%" gap="xs" wrap="nowrap">
           <Link to="/" style={{ display: "flex", alignItems: "center" }}>
             <Image
-              src={`/assets/snaptosell-${colorScheme === "light" ? "light" : colorScheme === "dark" ? "dark" : computedColorScheme === 'dark' ? "dark" : "light"}.png`}
+              src={`/assets/snaptosell-${colorScheme === "light" ? "light" : colorScheme === "dark" ? "dark" : computedColorScheme === "dark" ? "dark" : "light"}.png`}
               alt="SnapToSell Logo"
               className={classes.headerLogo}
             />
@@ -80,18 +97,7 @@ const Header = () => {
           </Group>
 
           <Group gap="xs" visibleFrom="md" wrap="nowrap">
-            <ActionIcon
-              onClick={toggleColorScheme}
-              variant="default"
-              size="lg"
-              aria-label="Toggle color scheme"
-            >
-              {computedColorScheme === "dark" ? (
-                <IconSun size={18} />
-              ) : (
-                <IconMoon size={18} />
-              )}
-            </ActionIcon>
+            <ColorSchemeToggle />
             {isLoggedIn ? (
               <Menu shadow="md" width={200} position="bottom-end">
                 <Menu.Target>
@@ -135,12 +141,10 @@ const Header = () => {
             )}
           </Group>
 
-          <Burger
-            opened={drawerOpened}
-            onClick={toggleDrawer}
-            hiddenFrom="md"
-            size="sm"
-          />
+          <Group hiddenFrom="md">
+            <ColorSchemeToggle />
+            <Burger opened={drawerOpened} onClick={toggleDrawer} size="sm" />
+          </Group>
         </Group>
       </header>
 
