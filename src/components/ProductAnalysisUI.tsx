@@ -43,6 +43,7 @@ interface ProductAnalysis {
   distinctive_features?: string;
   possible_confusion?: string;
   clarity_feedback?: string;
+  estimated_price?: string;
 }
 
 interface PricingData {
@@ -80,10 +81,32 @@ export default function ProductAnalysisUI({
 
   const productName = analysis.identified_product || "Unknown Product";
   const confidenceScore = 50; // Could be calculated based on analysis completeness
-  const originalPrice = pricing?.average_price ? pricing.average_price * 2 : 300; // Estimate
-  const currentPrice = pricing?.average_price || 160;
+  
+  // Parse estimated_price from AI (e.g., "$400-$500" or "$250")
+  const parsePrice = (priceStr?: string): { min: number; max: number; avg: number } => {
+    if (!priceStr) return { min: 0, max: 0, avg: 0 };
+    
+    // Remove currency symbols and spaces
+    const cleaned = priceStr.replace(/[$,\s]/g, '');
+    
+    // Check if it's a range (e.g., "400-500")
+    if (cleaned.includes('-')) {
+      const [minStr, maxStr] = cleaned.split('-');
+      const min = parseFloat(minStr) || 0;
+      const max = parseFloat(maxStr) || 0;
+      return { min, max, avg: (min + max) / 2 };
+    }
+    
+    // Single price value
+    const price = parseFloat(cleaned) || 0;
+    return { min: price, max: price, avg: price };
+  };
+  
+  const priceData = parsePrice(analysis.estimated_price);
+  const currentPrice = priceData.avg;
+  const originalPrice = currentPrice > 0 ? currentPrice * 1.5 : 300; // Estimate original retail as 1.5x current
   const priceDifference = originalPrice > 0
-    ? ((currentPrice / originalPrice) * 100).toFixed(0)
+    ? (100 - (currentPrice / originalPrice) * 100).toFixed(0)
     : 50;
 
   const formatPrice = (price: number, currency: string = "USD") => {
@@ -121,12 +144,13 @@ export default function ProductAnalysisUI({
               {formatPrice(originalPrice, pricing?.price_currency)}
             </Text>
 
-            <Text mt="lg" size="sm" fw={600}>Current Market Value</Text>
+            <Text mt="lg" size="sm" fw={600}>AI Estimated Market Value</Text>
             <Text size="xl" fw={700} c="green">
-              {formatPrice(currentPrice, pricing?.price_currency)}{" "}
-              <span style={{ fontSize: 14 }}>⬈</span>
+              {analysis.estimated_price || "Price not available"}
             </Text>
-            <Text size="xs" c="red">{priceDifference}% below retail</Text>
+            {currentPrice > 0 && (
+              <Text size="xs" c="red">{priceDifference}% below retail</Text>
+            )}
           </div>
 
           <div>
@@ -220,10 +244,10 @@ export default function ProductAnalysisUI({
             <Text size="sm" mt="xs" c="dimmed">Audience: SnapToSell users</Text>
 
             <Divider my="md" />
-            <Text size="sm">Sale Price: <b>{formatPrice(currentPrice, pricing?.price_currency)}</b></Text>
+            <Text size="sm">Sale Price: <b>{analysis.estimated_price || "N/A"}</b></Text>
             <Text size="sm">Platform Fee: <b>$0</b></Text>
 
-            <Text fw={600} mt="md">Your Earnings: {formatPrice(currentPrice, pricing?.price_currency)}</Text>
+            <Text fw={600} mt="md">Your Earnings: {analysis.estimated_price || "N/A"}</Text>
           </Card>
 
           {/* Facebook Marketplace */}
@@ -232,10 +256,10 @@ export default function ProductAnalysisUI({
             <Text size="sm" mt="xs" c="dimmed">Audience: Local</Text>
 
             <Divider my="md" />
-            <Text size="sm">Sale Price: <b>{formatPrice(currentPrice, pricing?.price_currency)}</b></Text>
+            <Text size="sm">Sale Price: <b>{analysis.estimated_price || "N/A"}</b></Text>
             <Text size="sm">Platform Fee: <b>$0</b></Text>
 
-            <Text fw={600} mt="md">Your Earnings: {formatPrice(currentPrice, pricing?.price_currency)}</Text>
+            <Text fw={600} mt="md">Your Earnings: {analysis.estimated_price || "N/A"}</Text>
           </Card>
 
           {/* eBay */}
@@ -244,10 +268,10 @@ export default function ProductAnalysisUI({
             <Text size="sm" mt="xs" c="dimmed">Audience: Global</Text>
 
             <Divider my="md" />
-            <Text size="sm">Sale Price: <b>{formatPrice(currentPrice, pricing?.price_currency)}</b></Text>
-            <Text size="sm">Platform Fee: <b>{formatPrice(ebayFee, pricing?.price_currency)}</b></Text>
+            <Text size="sm">Sale Price: <b>{analysis.estimated_price || "N/A"}</b></Text>
+            <Text size="sm">Platform Fee: <b>{currentPrice > 0 ? formatPrice(currentPrice * 0.1) : "N/A"}</b></Text>
 
-            <Text fw={600} mt="md">Your Earnings: {formatPrice(ebayEarnings, pricing?.price_currency)}</Text>
+            <Text fw={600} mt="md">Your Earnings: {currentPrice > 0 ? formatPrice(currentPrice * 0.9) : "N/A"}</Text>
           </Card>
         </SimpleGrid>
       </Card>

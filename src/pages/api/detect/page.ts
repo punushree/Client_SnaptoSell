@@ -162,6 +162,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         ram :analysisResult.analysis.ram,
         processor : analysisResult.analysis.processor,
         gpu : analysisResult.analysis.gpu,
+        estimated_price: analysisResult.analysis.estimated_price,
         status: 'completed' as const
       });
 

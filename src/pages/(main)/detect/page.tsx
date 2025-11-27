@@ -1,21 +1,41 @@
-import '@mantine/dropzone/styles.css';
+import "@mantine/dropzone/styles.css";
 import { useRef, useState, useEffect } from "react";
 import {
-  Container, Paper, Stack, Title, Text, Button, Group, Center, Alert,
-  ActionIcon, Box, Image, SimpleGrid, Card, Badge,
-  Modal, TextInput, Textarea, NumberInput, Divider,
-  Select
+  Container,
+  Paper,
+  Stack,
+  Title,
+  Text,
+  Button,
+  Group,
+  Center,
+  Alert,
+  ActionIcon,
+  Box,
+  Image,
+  SimpleGrid,
+  Card,
+  Badge,
+  Modal,
+  TextInput,
+  Textarea,
+  NumberInput,
+  Divider,
+  Select,
 } from "@mantine/core";
 import { Dropzone } from "@mantine/dropzone";
 import { notifications } from "@mantine/notifications";
 import {
-  IconCamera, IconCapture, IconAlertCircle,
-  IconTrash, IconX, IconCloudUpload
+  IconCamera,
+  IconCapture,
+  IconAlertCircle,
+  IconTrash,
+  IconX,
+  IconCloudUpload,
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router";
 import SampleImages from "@/components/SampleImages";
-import ProductPricing from "@/components/ProductPricing";
-import ProductAnalysisUI from '@/components/ProductAnalysisUI';
+import ProductAnalysisUI from "@/components/ProductAnalysisUI";
 
 const Page = () => {
   const navigate = useNavigate();
@@ -27,7 +47,9 @@ const Page = () => {
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [facingMode, setFacingMode] = useState<"user" | "environment">(
+    "environment"
+  );
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [details, setDetails] = useState("");
   const [showSampleImages, setShowSampleImages] = useState(false);
@@ -36,7 +58,9 @@ const Page = () => {
   const [submitSuccess, setSubmitSuccess] = useState<any>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
-  const [confirmationError, setConfirmationError] = useState<string | null>(null);
+  const [confirmationError, setConfirmationError] = useState<string | null>(
+    null
+  );
 
   // Form fields for editing product information
   const [editedProduct, setEditedProduct] = useState({
@@ -55,6 +79,7 @@ const Page = () => {
     ram: "",
     processor: "",
     gpu: "",
+    estimated_price: "",
   });
 
   const messages = [
@@ -62,7 +87,7 @@ const Page = () => {
     "2) Capture or upload Back image of device",
     "3) Capture or upload Left image of device",
     "4) Capture or upload Right image of device",
-    "5) Capture or upload Settings image of device"
+    "5) Capture or upload Settings image of device",
   ];
 
   // Start camera
@@ -72,10 +97,11 @@ const Page = () => {
       if (stream) stream.getTracks().forEach((t) => t.stop());
 
       // Check if mobile device
-      const isMobileDevice = typeof window !== "undefined" && window.innerWidth < 768;
+      const isMobileDevice =
+        typeof window !== "undefined" && window.innerWidth < 768;
       const actualMode = isMobileDevice ? mode : "user";
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: actualMode } }
+        video: { facingMode: { ideal: actualMode } },
       });
 
       setStream(mediaStream);
@@ -97,7 +123,7 @@ const Page = () => {
   // Scroll to top when result (success or error) is shown
   useEffect(() => {
     if (submitSuccess || submitError) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [submitSuccess, submitError]);
 
@@ -163,24 +189,26 @@ const Page = () => {
     });
 
     // Reset the input so the same files can be selected again
-    e.target.value = '';
+    e.target.value = "";
   };
 
-
   // Convert image URL to File object
-  const imageURLtoFile = async (imageUrl: string, filename: string): Promise<File> => {
+  const imageURLtoFile = async (
+    imageUrl: string,
+    filename: string
+  ): Promise<File> => {
     // Handle blob URLs (from file uploads)
-    if (imageUrl.startsWith('blob:')) {
+    if (imageUrl.startsWith("blob:")) {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      return new File([blob], filename, { type: blob.type || 'image/jpeg' });
+      return new File([blob], filename, { type: blob.type || "image/jpeg" });
     }
 
     // Handle data URLs (from camera capture)
-    if (imageUrl.startsWith('data:')) {
-      const arr = imageUrl.split(',');
+    if (imageUrl.startsWith("data:")) {
+      const arr = imageUrl.split(",");
       const mimeMatch = arr[0].match(/:(.*?);/);
-      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
       const base64Data = arr[1];
 
       try {
@@ -202,7 +230,7 @@ const Page = () => {
     // Fallback for any other URL type
     const response = await fetch(imageUrl);
     const blob = await response.blob();
-    return new File([blob], filename, { type: blob.type || 'image/jpeg' });
+    return new File([blob], filename, { type: blob.type || "image/jpeg" });
   };
 
   const handleSubmit = async () => {
@@ -226,54 +254,63 @@ const Page = () => {
       const formData = new FormData();
 
       // Add description
-      formData.append('description', details.trim());
-      console.log('Description:', details.trim());
+      formData.append("description", details.trim());
+      console.log("Description:", details.trim());
 
       // Convert image URLs (data URLs or blob URLs) to File objects and add to FormData
-      console.log('Converting images to files...');
+      console.log("Converting images to files...");
       const filePromises = capturedImages.map((imageUrl, index) =>
         imageURLtoFile(imageUrl, `image-${index}.jpg`)
       );
       const files = await Promise.all(filePromises);
-      console.log(`Converted ${files.length} files:`, files.map(f => ({ name: f.name, size: f.size, type: f.type })));
+      console.log(
+        `Converted ${files.length} files:`,
+        files.map((f) => ({ name: f.name, size: f.size, type: f.type }))
+      );
 
       files.forEach((file, index) => {
         formData.append(`image${index}`, file);
       });
 
-      console.log('Sending request to /api/detect...');
+      console.log("Sending request to /api/detect...");
       // Make POST request to API
-      const response = await fetch('/api/detect', {
-        method: 'POST',
+      const response = await fetch("/api/detect", {
+        method: "POST",
         body: formData,
       });
 
-      console.log('Response status:', response.status, response.statusText);
+      console.log("Response status:", response.status, response.statusText);
 
       let result;
 
       try {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
           result = await response.json();
         } else {
           const text = await response.text();
-          console.error('Non-JSON response:', text);
-          throw new Error(`Server returned non-JSON response: ${text.substring(0, 200)}`);
+          console.error("Non-JSON response:", text);
+          throw new Error(
+            `Server returned non-JSON response: ${text.substring(0, 200)}`
+          );
         }
       } catch (parseError) {
-        console.error('Failed to parse response:', parseError);
-        throw new Error(`Failed to parse server response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+        console.error("Failed to parse response:", parseError);
+        throw new Error(
+          `Failed to parse server response: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
+        );
       }
 
-      console.log('Response data:', result);
+      console.log("Response data:", result);
 
       if (!response.ok) {
         // Show detailed error from backend
         const errorMsg = result.details
-          ? `${result.error || 'Error'}: ${result.details}`
-          : result.error || result.details || `Failed to submit images (Status: ${response.status})`;
-        console.error('API Error:', errorMsg, result);
+          ? `${result.error || "Error"}: ${result.details}`
+          : result.error ||
+            result.details ||
+            `Failed to submit images (Status: ${response.status})`;
+        console.error("API Error:", errorMsg, result);
         throw new Error(errorMsg);
       }
 
@@ -296,19 +333,21 @@ const Page = () => {
           ram: result.data.analysis?.ram || "",
           processor: result.data.analysis?.processor || "",
           gpu: result.data.analysis?.gpu || "",
+          estimated_price: result.data.analysis?.estimated_price || "",
         });
         setShowConfirmation(true);
       } else {
-        throw new Error(result.error || 'Submission failed');
+        throw new Error(result.error || "Submission failed");
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
       setSubmitError(errorMessage);
-      console.error('Submit error:', err);
+      console.error("Submit error:", err);
 
       // Log more details for debugging
       if (err instanceof Error) {
-        console.error('Error stack:', err.stack);
+        console.error("Error stack:", err.stack);
       }
     } finally {
       setIsSubmitting(false);
@@ -322,34 +361,39 @@ const Page = () => {
     setConfirmationError(null);
 
     try {
-      const response = await fetch('/api/detect/confirm', {
-        method: 'POST',
+      const response = await fetch("/api/detect/confirm", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           uuid: submitSuccess.uuid,
           isCorrect: isCorrect,
-          updatedData: isCorrect ? editedProduct : editedProduct
+          updatedData: isCorrect ? editedProduct : editedProduct,
         }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.details || result.error || 'Failed to confirm product information');
+        throw new Error(
+          result.details ||
+            result.error ||
+            "Failed to confirm product information"
+        );
       }
 
       // Show success state with confirmed data
       setShowConfirmation(false);
       setSubmitSuccess({
         ...submitSuccess,
-        userConfirmed: result.data.userConfirmed
+        userConfirmed: result.data.userConfirmed,
       });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
       setConfirmationError(errorMessage);
-      console.error('Confirmation error:', err);
+      console.error("Confirmation error:", err);
     } finally {
       setIsConfirming(false);
     }
@@ -361,19 +405,30 @@ const Page = () => {
       <Modal
         opened={showConfirmation && !!submitSuccess}
         onClose={() => setShowConfirmation(false)}
-        title={<Text fw={600} size="lg">Is this information correct?</Text>}
+        title={
+          <Text fw={600} size="lg">
+            Is this information correct?
+          </Text>
+        }
         size="lg"
         centered
       >
         <Stack gap="md">
           {confirmationError && (
-            <Alert color="red" title="Error" onClose={() => setConfirmationError(null)} withCloseButton>
+            <Alert
+              color="red"
+              title="Error"
+              onClose={() => setConfirmationError(null)}
+              withCloseButton
+            >
               {confirmationError}
             </Alert>
           )}
 
           <Paper p="md" radius="md" bg="blue.0" withBorder>
-            <Text fw={600} mb="md">Detected Information:</Text>
+            <Text fw={600} mb="md">
+              Detected Information:
+            </Text>
             <Stack gap="xs">
               {/* <div>
                 <Text size="sm" c="dimmed">Product Name</Text>
@@ -401,85 +456,135 @@ const Page = () => {
               </div> */}
 
               <div>
-                <Text size="sm" >
-                  Product Name : <Text span fw={700}> {submitSuccess?.analysis?.identified_product || "N/A"}</Text>
+                <Text size="sm">
+                  Product Name :{" "}
+                  <Text span fw={700}>
+                    {" "}
+                    {submitSuccess?.analysis?.identified_product || "N/A"}
+                  </Text>
                 </Text>
               </div>
               <div>
-                <Text size="sm" >
-                  Brand : <Text span fw={700}>{submitSuccess?.analysis?.brand || "N/A"}</Text>
+                <Text size="sm">
+                  Brand :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.brand || "N/A"}
+                  </Text>
                 </Text>
               </div>
 
               <div>
                 <Text size="sm">
-                  Condition : <Text span fw={700}>{submitSuccess?.analysis?.condition_rating || "N/A"}</Text>
+                  Condition :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.condition_rating || "N/A"}
+                  </Text>
                 </Text>
               </div>
 
               <div>
                 <Text size="sm">
-                  Model : <Text span fw={700}>{submitSuccess?.analysis?.model || "N/A"}</Text>
+                  Model :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.model || "N/A"}
+                  </Text>
                 </Text>
               </div>
 
               <div>
                 <Text size="sm">
-                  Model Variant : <Text span fw={700}>{submitSuccess?.analysis?.model_variant || "N/A"}</Text>
+                  Model Variant :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.model_variant || "N/A"}
+                  </Text>
                 </Text>
               </div>
 
               <div>
                 <Text size="sm">
-                  Storage : <Text span fw={700}>{submitSuccess?.analysis?.storage || "N/A"}</Text>
+                  Storage :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.storage || "N/A"}
+                  </Text>
                 </Text>
               </div>
               <div>
                 <Text size="sm">
-                  Color : <Text span fw={700}>{submitSuccess?.analysis?.color_variants || "N/A"}</Text>
-                </Text>
-              </div>
-
-              <div>
-                <Text size="sm">
-                  Size : <Text span fw={700}>{submitSuccess?.analysis?.size || "N/A"}</Text>
-                </Text>
-              </div>
-
-              <div>
-                <Text size="sm">
-                  RAM : <Text span fw={700}>{submitSuccess?.analysis?.ram || "N/A"}</Text>
+                  Color :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.color_variants || "N/A"}
+                  </Text>
                 </Text>
               </div>
 
               <div>
                 <Text size="sm">
-                  Processor : <Text span fw={700}>{submitSuccess?.analysis?.processor || "N/A"}</Text>
+                  Size :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.size || "N/A"}
+                  </Text>
                 </Text>
               </div>
 
               <div>
                 <Text size="sm">
-                  GPU : <Text span fw={700}>{submitSuccess?.analysis?.gpu || "N/A"}</Text>
+                  RAM :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.ram || "N/A"}
+                  </Text>
                 </Text>
               </div>
-              <div>
-                <Text size="sm" >Carrier : <Text span fw={700}>{submitSuccess?.analysis?.carrier || "N/A"}</Text>
-                </Text>
-              </div>
-
 
               <div>
                 <Text size="sm">
-                  Estimated Year : <Text span fw={700}>{submitSuccess?.analysis?.estimated_year || "N/A"}</Text>
+                  Processor :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.processor || "N/A"}
+                  </Text>
                 </Text>
               </div>
 
+              <div>
+                <Text size="sm">
+                  GPU :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.gpu || "N/A"}
+                  </Text>
+                </Text>
+              </div>
+              <div>
+                <Text size="sm">
+                  Carrier :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.carrier || "N/A"}
+                  </Text>
+                </Text>
+              </div>
+
+              <div>
+                <Text size="sm">
+                  Estimated Year :{" "}
+                  <Text span fw={700}>
+                    {submitSuccess?.analysis?.estimated_year || "N/A"}
+                  </Text>
+                </Text>
+              </div>
+
+              <div>
+                <Text size="sm">
+                  Estimated Price :{" "}
+                  <Text span fw={700} c="green">
+                    {submitSuccess?.analysis?.estimated_price || "N/A"}
+                  </Text>
+                </Text>
+              </div>
             </Stack>
           </Paper>
 
           <Stack gap="sm">
-            <Text fw={600} size="sm">Update Information (if needed):</Text>
+            <Text fw={600} size="sm">
+              Update Information (if needed):
+            </Text>
 
             {/* <TextInput
               label="Product Name==="
@@ -488,52 +593,76 @@ const Page = () => {
               onChange={(e) => setEditedProduct({ ...editedProduct, identified_product: e.target.value })}
             /> */}
 
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}>Product Name</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                Product Name
+              </Text>
               <TextInput
                 placeholder="e.g., iPhone 15 Pro"
                 value={editedProduct.identified_product}
                 onChange={(e) =>
-                  setEditedProduct({ ...editedProduct, identified_product: e.target.value })
+                  setEditedProduct({
+                    ...editedProduct,
+                    identified_product: e.target.value,
+                  })
                 }
                 style={{ width: "80%" }}
               />
             </Group>
 
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}>Brand</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                Brand
+              </Text>
               <TextInput
                 //label="Brand"
                 placeholder="e.g., Apple"
                 value={editedProduct.brand}
-                onChange={(e) => setEditedProduct({ ...editedProduct, brand: e.target.value })}
+                onChange={(e) =>
+                  setEditedProduct({ ...editedProduct, brand: e.target.value })
+                }
                 style={{ width: "90%" }}
               />
             </Group>
 
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}> Color</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                {" "}
+                Color
+              </Text>
               <TextInput
                 placeholder="e.g., Space Black"
                 value={editedProduct.color_variants}
-                onChange={(e) => setEditedProduct({ ...editedProduct, color_variants: e.target.value })}
+                onChange={(e) =>
+                  setEditedProduct({
+                    ...editedProduct,
+                    color_variants: e.target.value,
+                  })
+                }
                 style={{ width: "90%" }}
               />
             </Group>
 
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}> Size</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                {" "}
+                Size
+              </Text>
               <TextInput
-
                 placeholder="e.g., 6.1 inches"
                 value={editedProduct.size}
-                onChange={(e) => setEditedProduct({ ...editedProduct, size: e.target.value })}
+                onChange={(e) =>
+                  setEditedProduct({ ...editedProduct, size: e.target.value })
+                }
                 style={{ width: "90%" }}
               />
             </Group>
 
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}> Condition Rating</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                {" "}
+                Condition Rating
+              </Text>
               <TextInput
                 //label="Condition Rating"
                 placeholder="good"
@@ -541,93 +670,141 @@ const Page = () => {
                 max={10}
                 value={editedProduct.condition_rating}
                 //value={typeof editedProduct.condition_rating === 'string' && editedProduct.condition_rating === '' ? undefined : Number(editedProduct.condition_rating)}
-                onChange={(val) => setEditedProduct({ ...editedProduct, condition_rating: val !== null && val !== undefined ? String(val) : "" })}
+                onChange={(val) =>
+                  setEditedProduct({
+                    ...editedProduct,
+                    condition_rating:
+                      val !== null && val !== undefined ? String(val) : "",
+                  })
+                }
                 style={{ width: "78%" }}
               />
             </Group>
 
-
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}> Estimated Year</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                {" "}
+                Estimated Year
+              </Text>
               <TextInput
                 placeholder="e.g., 2023"
                 value={editedProduct.estimated_year}
-                onChange={(e) => setEditedProduct({ ...editedProduct, estimated_year: e.target.value })}
+                onChange={(e) =>
+                  setEditedProduct({
+                    ...editedProduct,
+                    estimated_year: e.target.value,
+                  })
+                }
                 style={{ width: "80%" }}
               />
             </Group>
 
-
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}> Model</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                {" "}
+                Model
+              </Text>
               <TextInput
                 placeholder=""
                 value={editedProduct.model}
-                onChange={(e) => setEditedProduct({ ...editedProduct, model: e.target.value })}
+                onChange={(e) =>
+                  setEditedProduct({ ...editedProduct, model: e.target.value })
+                }
                 style={{ width: "80%" }}
               />
             </Group>
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}> Model Variant </Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                {" "}
+                Model Variant{" "}
+              </Text>
 
               <TextInput
                 placeholder=""
                 value={editedProduct.model_variant}
-                onChange={(e) => setEditedProduct({ ...editedProduct, model_variant: e.target.value })}
+                onChange={(e) =>
+                  setEditedProduct({
+                    ...editedProduct,
+                    model_variant: e.target.value,
+                  })
+                }
                 style={{ width: "80%" }}
               />
             </Group>
 
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}>Storage</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                Storage
+              </Text>
               <TextInput
                 placeholder=""
                 value={editedProduct.storage}
-                onChange={(e) => setEditedProduct({ ...editedProduct, storage: e.target.value })}
+                onChange={(e) =>
+                  setEditedProduct({
+                    ...editedProduct,
+                    storage: e.target.value,
+                  })
+                }
                 style={{ width: "85%" }}
               />
             </Group>
 
-
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}> RAM</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                {" "}
+                RAM
+              </Text>
               <TextInput
                 placeholder=""
                 value={editedProduct.ram}
-                onChange={(e) => setEditedProduct({ ...editedProduct, ram: e.target.value })}
+                onChange={(e) =>
+                  setEditedProduct({ ...editedProduct, ram: e.target.value })
+                }
                 style={{ width: "85%" }}
               />
-
             </Group>
 
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}> Processor</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                {" "}
+                Processor
+              </Text>
               <TextInput
                 placeholder=""
                 value={editedProduct.processor}
-                onChange={(e) => setEditedProduct({ ...editedProduct, processor: e.target.value })}
+                onChange={(e) =>
+                  setEditedProduct({
+                    ...editedProduct,
+                    processor: e.target.value,
+                  })
+                }
                 style={{ width: "85%" }}
               />
             </Group>
 
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}>GPU</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                GPU
+              </Text>
               <TextInput
                 placeholder=""
                 value={editedProduct.gpu}
-                onChange={(e) => setEditedProduct({ ...editedProduct, gpu: e.target.value })}
+                onChange={(e) =>
+                  setEditedProduct({ ...editedProduct, gpu: e.target.value })
+                }
                 style={{ width: "85%" }}
               />
             </Group>
 
-
-            <Group justify="space-between" >
-              <Text size="sm" fw={500}> Carrier</Text>
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                {" "}
+                Carrier
+              </Text>
               <Select
                 placeholder=""
                 searchable
                 nothingFoundMessage="No results"
-
                 data={["Locked", "Unlocked"]}
                 value={editedProduct.carrier}
                 onChange={(value) =>
@@ -637,11 +814,33 @@ const Page = () => {
               />
             </Group>
 
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                Estimated Price
+              </Text>
+              <TextInput
+                placeholder="e.g., $400-$500"
+                value={editedProduct.estimated_price}
+                onChange={(e) =>
+                  setEditedProduct({
+                    ...editedProduct,
+                    estimated_price: e.target.value,
+                  })
+                }
+                style={{ width: "75%" }}
+              />
+            </Group>
+
             <Textarea
               label="Description"
               placeholder="Additional description"
               value={editedProduct.short_description}
-              onChange={(e) => setEditedProduct({ ...editedProduct, short_description: e.target.value })}
+              onChange={(e) =>
+                setEditedProduct({
+                  ...editedProduct,
+                  short_description: e.target.value,
+                })
+              }
               rows={3}
             />
           </Stack>
@@ -669,128 +868,27 @@ const Page = () => {
 
       {/* Show only Success UI when submitSuccess exists */}
       {submitSuccess ? (
-        <Alert color="green" onClose={() => setSubmitSuccess(null)} withCloseButton>
+        <Alert
+          color="green"
+          onClose={() => setSubmitSuccess(null)}
+          withCloseButton
+        >
           <div style={{ padding: "20px" }}>
             <Text fw={600} mb="xs">
-              {submitSuccess.userConfirmed ? "✓ Product Information Confirmed!" : "✓ Product Information Updated Successfully!"}
+              {submitSuccess.userConfirmed
+                ? "✓ Product Information Confirmed!"
+                : "✓ Product Information Updated Successfully!"}
             </Text>
-            <Text size="md" mb="xs">Status : <Text span fw={700}>{submitSuccess.status}</Text></Text>
-
-            {/* Analysis Section */}
-            {submitSuccess.analysis && (
-              <Box mt="md">
-                <Text fw={600} size="md" mb="xs">
-                  Final Product Details:
-                </Text>
-                <Stack gap="xs">
-                  <div>
-                    <Text size="sm" >
-                      Product Name : <Text span fw={700}> {submitSuccess.analysis.identified_product || "N/A"}</Text>
-                    </Text>
-                  </div>
-                  <div>
-                    <Text size="sm" >
-                      Brand : <Text span fw={700}>{submitSuccess.analysis.brand || "N/A"}</Text>
-                    </Text>
-                  </div>
-
-                  <div>
-                    <Text size="sm">
-                      Condition : <Text span fw={700}>{submitSuccess.analysis.condition_rating || "N/A"}</Text>
-                    </Text>
-                  </div>
-
-                  <div>
-                    <Text size="sm">
-                      Model : <Text span fw={700}>{submitSuccess.analysis.model || "N/A"}</Text>
-                    </Text>
-                  </div>
-
-                  <div>
-                    <Text size="sm">
-                      Model Variant : <Text span fw={700}>{submitSuccess.analysis.model_variant || "N/A"}</Text>
-                    </Text>
-                  </div>
-
-                  <div>
-                    <Text size="sm">
-                      Storage : <Text span fw={700}>{submitSuccess.analysis.storage || "N/A"}</Text>
-                    </Text>
-                  </div>
-                  <div>
-                    <Text size="sm">
-                      Color : <Text span fw={700}>{submitSuccess.analysis.color_variants || "N/A"}</Text>
-                    </Text>
-                  </div>
-
-                  <div>
-                    <Text size="sm">
-                      Size : <Text span fw={700}>{submitSuccess.analysis.size || "N/A"}</Text>
-                    </Text>
-                  </div>
-                  <div>
-                    <Text size="sm">
-                      RAM : <Text span fw={700}>{submitSuccess.analysis.ram || "N/A"}</Text>
-                    </Text>
-                  </div>
-
-                  <div>
-                    <Text size="sm">
-                      Processor : <Text span fw={700}>{submitSuccess.analysis.processor || "N/A"}</Text>
-                    </Text>
-                  </div>
-
-                  <div>
-                    <Text size="sm">
-                      GPU : <Text span fw={700}>{submitSuccess.analysis.gpu || "N/A"}</Text>
-                    </Text>
-                  </div>
-
-                  <div>
-                    <Text size="sm">
-                      Estimated Year : <Text span fw={700}>{submitSuccess.analysis.estimated_year || "N/A"}</Text>
-                    </Text>
-                  </div>
-
-
-                  {submitSuccess.analysis.short_description && (
-                    <div>
-                      <Text size="sm">
-                        Description : <Text span fw={700}>{submitSuccess.analysis.short_description}</Text>
-                      </Text>
-                    </div>
-                  )}
-                </Stack>
-                
-                
-              </Box>
-            )}
-
-            {/* Product Pricing Section - Show after confirmation */}
-            {submitSuccess?.uuid && submitSuccess?.status === 'completed' && (
-              <Box mt="md">
-                <ProductPricing
-                  uuid={submitSuccess.uuid}
-                  onPricingUpdated={(data) => {
-                    // Optional: You can update local state or show additional notifications here
-                    console.log("Pricing updated:", data);
-                  }}
-                />
-                 <Box mt="md">
-                <ProductAnalysisUI
-                  analysis={submitSuccess.analysis} 
-                  
-                  
-                  //titl="Final Product Details"
-                />
-                 </Box>
-              </Box>
-            )}
+            {/* <Text size="md" mb="xs">Status : <Text span fw={700}>{submitSuccess.status}</Text></Text> */}
 
             {/*Uploaded Images Preview */}
             {capturedImages.length > 0 && (
               <Box mt="lg">
-                <SimpleGrid cols={{ base: 3, sm: 3, md: 3 }} spacing="sm" w="100%">
+                <SimpleGrid
+                  cols={{ base: 3, sm: 3, md: 3 }}
+                  spacing="sm"
+                  w="100%"
+                >
                   {capturedImages.map((img, index) => (
                     <Card
                       key={index}
@@ -831,6 +929,150 @@ const Page = () => {
               </Box>
             )}
 
+            {/* Analysis Section */}
+            {submitSuccess.analysis && (
+              <Box mt="md">
+                {/* Description Section - Prominent at top */}
+                {submitSuccess.analysis.short_description && (
+                  <Paper p="md" radius="md" withBorder mb="md" bg="blue.0">
+                    <Text size="lg" fw={700} mb="xs" c="blue.9">
+                      About This Product
+                    </Text>
+                    <Text size="sm" style={{ lineHeight: 1.6 }}>
+                      {submitSuccess.analysis.short_description}
+                    </Text>
+                  </Paper>
+                )}
+
+                {/* Product Details in Compact Grid */}
+                <Text fw={600} size="md" mb="sm">
+                  Product Specifications
+                </Text>
+                <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="xs" mb="md">
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      Product Name
+                    </Text>
+                    <Text size="sm" fw={600} lineClamp={1}>
+                      {submitSuccess.analysis.identified_product || "N/A"}
+                    </Text>
+                  </Paper>
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      Brand
+                    </Text>
+                    <Text size="sm" fw={600}>
+                      {submitSuccess.analysis.brand || "N/A"}
+                    </Text>
+                  </Paper>
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      Model
+                    </Text>
+                    <Text size="sm" fw={600}>
+                      {submitSuccess.analysis.model || "N/A"}
+                    </Text>
+                  </Paper>
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      Variant
+                    </Text>
+                    <Text size="sm" fw={600}>
+                      {submitSuccess.analysis.model_variant || "N/A"}
+                    </Text>
+                  </Paper>
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      Storage
+                    </Text>
+                    <Text size="sm" fw={600}>
+                      {submitSuccess.analysis.storage || "N/A"}
+                    </Text>
+                  </Paper>
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      RAM
+                    </Text>
+                    <Text size="sm" fw={600}>
+                      {submitSuccess.analysis.ram || "N/A"}
+                    </Text>
+                  </Paper>
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      Processor
+                    </Text>
+                    <Text size="sm" fw={600} lineClamp={1}>
+                      {submitSuccess.analysis.processor || "N/A"}
+                    </Text>
+                  </Paper>
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      GPU
+                    </Text>
+                    <Text size="sm" fw={600} lineClamp={1}>
+                      {submitSuccess.analysis.gpu || "N/A"}
+                    </Text>
+                  </Paper>
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      Size
+                    </Text>
+                    <Text size="sm" fw={600}>
+                      {submitSuccess.analysis.size || "N/A"}
+                    </Text>
+                  </Paper>
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      Color
+                    </Text>
+                    <Text size="sm" fw={600}>
+                      {submitSuccess.analysis.color_variants || "N/A"}
+                    </Text>
+                  </Paper>
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      Condition
+                    </Text>
+                    <Text size="sm" fw={600}>
+                      {submitSuccess.analysis.condition_rating || "N/A"}
+                    </Text>
+                  </Paper>
+                  <Paper p="xs" radius="sm" withBorder>
+                    <Text size="xs" c="dimmed">
+                      Year
+                    </Text>
+                    <Text size="sm" fw={600}>
+                      {submitSuccess.analysis.estimated_year || "N/A"}
+                    </Text>
+                  </Paper>
+                </SimpleGrid>
+
+                {/* Estimated Price - Highlighted */}
+                <Paper p="md" radius="md" withBorder bg="green.0">
+                  <Group justify="space-between" align="center">
+                    <div>
+                      <Text size="xs" c="dimmed">
+                        Estimated Market Value
+                      </Text>
+                      <Text size="xl" fw={700} c="green.8">
+                        {submitSuccess.analysis.estimated_price || "N/A"}
+                      </Text>
+                    </div>
+                    <Badge size="lg" color="green" variant="light">
+                      AI Estimated
+                    </Badge>
+                  </Group>
+                </Paper>
+              </Box>
+            )}
+
+            {/* Product Analysis UI - Show after confirmation */}
+            {submitSuccess?.uuid && submitSuccess?.status === "completed" && (
+              <Box mt="md">
+                <ProductAnalysisUI analysis={submitSuccess.analysis} />
+              </Box>
+            )}
+
             {/* Button to start new submission */}
             <Group justify="center" mt="xl" gap="md">
               <Button
@@ -850,7 +1092,7 @@ const Page = () => {
               <Button
                 variant="outline"
                 onClick={() => {
-                  navigate('/my-detections');
+                  navigate("/my-detections");
                 }}
               >
                 View All My Detections
@@ -859,11 +1101,7 @@ const Page = () => {
           </div>
         </Alert>
       ) : (
-
-
         <Stack gap="lg">
-
-
           {/*Error Popup / handle   */}
           <Modal
             opened={!!error}
@@ -920,12 +1158,11 @@ const Page = () => {
             <Text c="dimmed">
               Capture a photo of the product to detect it and find its price
             </Text>
-            <Text >
-              Capture/Upload a minimum 3 to 5 photos of the product.
-            </Text>
+            <Text>Capture/Upload a minimum 3 to 5 photos of the product.</Text>
             <Text>
-              Capture/Upload a photos form both sides like front side, back side, left side, right side of the product. Click here for priview sample images
-
+              Capture/Upload a photos form both sides like front side, back
+              side, left side, right side of the product. Click here for priview
+              sample images
               {/* <Button variant="light" ml="xs" onClick={handleShowSampleImages}>
               Sample Images
             </Button> */}
@@ -938,16 +1175,18 @@ const Page = () => {
                 View Sample Images
               </Button>
             </Text>
-            <Text>
-              After capture/upload a photos and add product details.
-            </Text>
+            <Text>After capture/upload a photos and add product details.</Text>
           </div>
 
           {/* Sample Images Modal */}
           <Modal
             opened={showSampleImages}
             onClose={() => setShowSampleImages(false)}
-            title={<Text fw={600} size="lg">Sample Images</Text>}
+            title={
+              <Text fw={600} size="lg">
+                Sample Images
+              </Text>
+            }
             size="xl"
             centered
           >
@@ -965,11 +1204,7 @@ const Page = () => {
                 onChange={handleFileUpload}
               />
 
-              <Group
-                align="flex-start"
-                gap="md"
-                wrap="wrap"
-              >
+              <Group align="flex-start" gap="md" wrap="wrap">
                 {/* Left side - Camera and controls */}
                 <Stack
                   gap="md"
@@ -994,7 +1229,9 @@ const Page = () => {
                     {!stream ? (
                       <Stack align="center" gap="md">
                         <IconCamera size={64} color="#adb5bd" />
-                        <Text size="sm" c="dimmed">Camera preview will appear here</Text>
+                        <Text size="sm" c="dimmed">
+                          Camera preview will appear here
+                        </Text>
                         <Button
                           leftSection={<IconCamera />}
                           onClick={() => startCamera()}
@@ -1005,7 +1242,9 @@ const Page = () => {
                       </Stack>
                     ) : (
                       <>
-                        {!isVideoReady && <Text c="white">Loading camera...</Text>}
+                        {!isVideoReady && (
+                          <Text c="white">Loading camera...</Text>
+                        )}
                         <video
                           ref={videoRef}
                           autoPlay
@@ -1071,7 +1310,9 @@ const Page = () => {
                   {capturedImages.length > 0 && (
                     <Box style={{ width: "100%" }}>
                       <Group justify="space-between" mb="sm">
-                        <Text fw={600}>Captured Images ({capturedImages.length}/5)</Text>
+                        <Text fw={600}>
+                          Captured Images ({capturedImages.length}/5)
+                        </Text>
                         <Button
                           variant="light"
                           color="red"
@@ -1082,7 +1323,11 @@ const Page = () => {
                           Reset All
                         </Button>
                       </Group>
-                      <SimpleGrid cols={{ base: 2, sm: 2, md: 2 }} spacing="sm" w="100%">
+                      <SimpleGrid
+                        cols={{ base: 2, sm: 2, md: 2 }}
+                        spacing="sm"
+                        w="100%"
+                      >
                         {capturedImages.map((img, index) => (
                           <Card
                             key={index}
@@ -1137,7 +1382,10 @@ const Page = () => {
                   )}
 
                   {/* Drag and Drop Zone */}
-                  <Divider label="OR upload without camera" labelPosition="center" />
+                  <Divider
+                    label="OR upload without camera"
+                    labelPosition="center"
+                  />
 
                   <Dropzone
                     onDrop={(files) => {
@@ -1151,40 +1399,58 @@ const Page = () => {
                     }}
                     onReject={(files) => {
                       files.forEach((file) => {
-                        let reason = 'Unknown reason';
+                        let reason = "Unknown reason";
 
                         if (file.errors.length > 0) {
                           const error = file.errors[0];
-                          if (error.code === 'file-too-large') {
-                            reason = 'File size exceeds 10MB limit';
-                          } else if (error.code === 'file-invalid-type') {
-                            reason = 'Invalid file type. Only images are allowed';
+                          if (error.code === "file-too-large") {
+                            reason = "File size exceeds 10MB limit";
+                          } else if (error.code === "file-invalid-type") {
+                            reason =
+                              "Invalid file type. Only images are allowed";
                           } else {
-                            reason = error.message || 'File rejected';
+                            reason = error.message || "File rejected";
                           }
                         }
 
                         notifications.show({
-                          title: 'File Rejected',
+                          title: "File Rejected",
                           message: `${file.file.name}: ${reason}`,
-                          color: 'red',
+                          color: "red",
                           autoClose: 5000,
                         });
                       });
                     }}
                     maxSize={5 * 1024 ** 2}
-                    accept={{ 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] }}
+                    accept={{ "image/*": [".jpeg", ".jpg", ".png", ".webp"] }}
                     multiple
                   >
-                    <Group justify="center" gap="sm" mih={100} style={{ pointerEvents: 'none' }}>
+                    <Group
+                      justify="center"
+                      gap="sm"
+                      mih={100}
+                      style={{ pointerEvents: "none" }}
+                    >
                       <Dropzone.Accept>
-                        <IconCloudUpload size={32} stroke={1.5} color="var(--mantine-color-blue-6)" />
+                        <IconCloudUpload
+                          size={32}
+                          stroke={1.5}
+                          color="var(--mantine-color-blue-6)"
+                        />
                       </Dropzone.Accept>
                       <Dropzone.Reject>
-                        <IconX size={32} stroke={1.5} color="var(--mantine-color-red-6)" />
+                        <IconX
+                          size={32}
+                          stroke={1.5}
+                          color="var(--mantine-color-red-6)"
+                        />
                       </Dropzone.Reject>
                       <Dropzone.Idle>
-                        <IconCloudUpload size={32} stroke={1.5} color="var(--mantine-color-gray-4)" />
+                        <IconCloudUpload
+                          size={32}
+                          stroke={1.5}
+                          color="var(--mantine-color-gray-4)"
+                        />
                       </Dropzone.Idle>
 
                       <div>
@@ -1192,7 +1458,8 @@ const Page = () => {
                           Drag images here or click to select
                         </Text>
                         <Text size="xs" c="dimmed" inline>
-                          {" "}(max 10MB each)
+                          {" "}
+                          (max 10MB each)
                         </Text>
                       </div>
                     </Group>
@@ -1246,7 +1513,6 @@ const Page = () => {
       )}
     </Container>
   );
-
 };
 
 export default Page;

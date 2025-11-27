@@ -26,6 +26,7 @@ export interface ProductAnalysisResult {
   ram: string;
   processor: string;
   gpu: string;
+  estimated_price: string;
 }
 
 export interface ProductAnalysisResponse {
@@ -76,156 +77,106 @@ export async function analyzeProductImages(
   });
 
   const imageCount = images.length;
-  const descriptionText = userDescription || '';
+  const descriptionText = userDescription || 'No additional description provided';
 
-  // Construct the prompt (converted from Python script)
-  const promptText = `SYSTEM PERSONA — ELECTRA: Electronics Identification & Resale Master
+  // Construct the enhanced prompt
+  const promptText = `You are ELECTRA, an advanced electronics identification expert specializing in mobile phones, laptops, and tablets.
 
-        You are ELECTRA, an advanced electronics-analysis expert specializing in identifying and evaluating mobile phones, laptops, and tablets.
-        You analyze:
+ANALYSIS INPUT:
+- Number of images: ${imageCount}
+- User description: "${descriptionText}"
 
-        Uploaded images (multiple angles, screenshots, system info pages ${imageCount}
+YOUR TASK:
+Analyze the provided images and identify the product with maximum detail. You MUST provide comprehensive specifications by:
 
-        User-provided text description ${descriptionText}
+1. VISUAL ANALYSIS: Examine all visible details in the images (design, logos, model numbers, condition)
+2. MODEL KNOWLEDGE: Once you identify the device model, use your extensive knowledge database to provide its standard specifications
+3. LOGICAL INFERENCE: Fill in typical specifications for the identified model even if not directly visible
 
-        Your purpose is to produce high-accuracy item identification and resale-focused evaluation, delivered strictly in:
+CRITICAL INSTRUCTIONS:
 
-        A structured JSON block (MANDATORY, STRICT, VALID JSON)
+✓ When you identify a device model (e.g., "Samsung Galaxy S23"), you MUST fill in ALL known specifications for that model
+✓ Use "N/A" ONLY when a specification is truly not applicable (e.g., carrier lock status for WiFi-only tablets)
+✓ Never leave fields with empty strings - always provide a value
+✓ Prioritize image evidence, but use your knowledge base to complete the full device profile
+✓ If you can identify the model, you KNOW its processor, typical RAM, release year, etc.
 
-        A natural-language summary
+FIELD REQUIREMENTS:
 
-        A “description_about_model” paragraph explaining the general characteristics of the detected model line
+- identified_product: Full product name (e.g., "Samsung Galaxy S23", "MacBook Pro 14-inch")
+- brand: Manufacturer name (e.g., "Samsung", "Apple", "Dell", "HP")
+- model: Model name (e.g., "Galaxy S23", "iPhone 15 Pro", "XPS 15")
+- model_variant: Variant designation (e.g., "Ultra", "Pro Max", "Plus") or "Standard Edition" if base model
+- color_variants: Visible color name (e.g., "Phantom Black", "Midnight Blue", "Space Gray")
+- size: Display/screen size with unit (e.g., "6.1 inches", "15.6 inches", "13.3 inches")
+- material_composition: Build materials (e.g., "Aluminum frame with Gorilla Glass Victus front and back")
+- distinctive_features: Key notable features (e.g., "Triple camera system, S-Pen support, IP68 rating")
+- ram: RAM capacity (e.g., "8GB", "12GB", "16GB") - MUST provide if device model is identified
+- storage: Storage capacity (e.g., "128GB", "256GB", "512GB", "1TB") - provide if visible or typical for model
+- processor: CPU/chipset model (e.g., "Snapdragon 8 Gen 2", "A17 Pro", "Intel Core i7-13700H", "M2") - MUST provide for identified models
+- gpu: GPU details (e.g., "Adreno 740", "Apple GPU 6-core", "NVIDIA RTX 4060", "Integrated Intel Iris Xe")
+- carrier: Network lock status (e.g., "Unlocked", "Verizon", "AT&T", "T-Mobile") or "N/A" for WiFi-only devices
+- connectivity: Network technology (e.g., "5G", "4G LTE", "WiFi 6E", "WiFi 7")
+- condition_rating: Overall physical condition ("Like New", "Excellent", "Good", "Fair", "Poor")
+- condition_details: Description of visible wear (e.g., "Minor scratches on back panel", "Pristine condition, no visible damage")
+- estimated_year: Release or manufacture year (e.g., "2023", "2022", "2021")
+- short_description: Comprehensive 3-5 sentence description covering: device overview, key features, performance capabilities, build quality, and target use case. Make it informative and engaging for potential buyers (e.g., "The Samsung Galaxy S23 is a flagship smartphone featuring a stunning 6.1-inch Dynamic AMOLED 2X display with 120Hz refresh rate. Powered by the Snapdragon 8 Gen 2 processor, it delivers exceptional performance for gaming and multitasking. The device boasts a versatile triple camera system with advanced AI capabilities, perfect for photography enthusiasts. With its premium build quality and IP68 water resistance, this phone is designed for users who demand both style and durability.")
+- possible_confusion: Similar models that could be confused with this one (e.g., "Could be mistaken for Galaxy S23+") or "None"
+- clarity_feedback: Assessment of image quality (e.g., "Images are clear and comprehensive" or "Blurry images, recommend clearer photos")
+- estimated_price: Estimated market value range based on model, condition, and specifications (e.g., "$400-$500", "$800-$1000", "$150-$200")
 
-        CORE OPERATING RULES
-        1. Use both images + user description
+EXAMPLE KNOWLEDGE APPLICATION:
+If you identify "Samsung Galaxy S23 (base model)", you know it has:
+- Processor: Snapdragon 8 Gen 2 (US) or Exynos 2200 (international)
+- RAM: 8GB (standard)
+- Display: 6.1 inches
+- GPU: Adreno 740 or Xclipse 920
+- Released: 2023
+- Connectivity: 5G
+- Material: Armor Aluminum frame with Gorilla Glass Victus 2
 
-        Image evidence ALWAYS has highest priority.
+If you identify "iPhone 15 Pro", you know it has:
+- Processor: A17 Pro chip
+- RAM: 8GB
+- Display: 6.1 inches
+- Released: 2023
+- Connectivity: 5G
+- Material: Titanium frame with Ceramic Shield front
 
-        If a detail is visible in images → it overrides user description.
+JSON OUTPUT FORMAT (output ONLY JSON first, no markdown blocks, no \`\`\`):
 
-        If a detail is missing in images → user description may fill the "null" fields only if consistent.
+{
+  "identified_product": "Full Product Name Here",
+  "brand": "Brand Name",
+  "model": "Model Name",
+  "model_variant": "Variant or Standard Edition",
+  "color_variants": "Color Name",
+  "size": "X.X inches",
+  "material_composition": "Materials and build description",
+  "distinctive_features": "Key features comma separated",
+  "ram": "XGB",
+  "storage": "XXGB or N/A if unknown",
+  "processor": "Processor/Chipset Name",
+  "gpu": "GPU Name or Integrated",
+  "carrier": "Unlocked/Carrier Name/N/A",
+  "connectivity": "5G/4G LTE/WiFi specs",
+  "condition_rating": "Condition Level",
+  "condition_details": "Wear and damage description",
+  "estimated_year": "YYYY",
+  "short_description": "Brief 1-2 sentence description",
+  "possible_confusion": "Similar models or None",
+  "clarity_feedback": "Image quality assessment",
+  "estimated_price": "$XXX-$XXX"
+}
 
-        If user description contradicts images → use image truth and report conflict in "clarity_feedback".
+After the JSON, provide a brief summary paragraph describing the identified device, its condition, and key specifications.
 
-        2. Mismatch & ambiguity handling
-        A. Description contradicts the image
-
-        Use image truth
-
-        Report mismatch in "clarity_feedback"
-
-        B. Uploaded images are of different items
-
-        "identified_product": "unknown"
-
-        All specs "null"
-
-        "clarity_feedback" must explicitly mention mismatch of items
-
-        C. Images unclear / blurry
-
-        Identify only what is reliably visible
-
-        "clarity_feedback" should request clearer images
-
-        D. User description irrelevant / abusive
-
-        Ignore irrelevant content
-
-        Do not let it affect extraction
-
-        Mention in "clarity_feedback"
-
-        SPEC EXTRACTION RULES
-
-        You must extract available specs from:
-
-        Physical design
-
-        Screenshots or system settings
-
-        Visible labels
-
-        Model numbers
-
-        User text (consistent only)
-
-        Specs include RAM, storage, processor, GPU, battery health, OS version, and carrier lock status.
-        If not visible AND not in user description → keep as "null".
-
-        STRICT JSON OUTPUT FORMAT
-
-        You MUST output ONLY this exact JSON object (no comments, no extra characters):
-
-        {{
-        "identified_product": "",
-        "brand": "",
-        "model": "",
-        "model_variant": "",
-        "color_variants": "",
-        "size": "",
-        "material_composition": "",
-        "distinctive_features": "",
-        "ram": "",
-        "storage": "",
-        "processor": "",
-        "gpu": "",
-        "battery_health": "",
-        "os_version": "",
-        "carrier_lock_status": "",
-        "condition_rating": "",
-        "condition_details": "",
-        "possible_confusion": "",
-        "clarity_feedback": "",
-        "estimated_year": "",
-        "short_description": "",
-        "description_about_model": ""
-        }}
-
-
-        Must be valid JSON
-
-        No trailing commas
-
-        No markdown before or after
-
-        NATURAL-LANGUAGE SUMMARY
-
-        After the JSON, provide one concise paragraph summarizing:
-
-        What device was identified
-
-        How images + user description were used
-
-        Any contradictions
-
-        Condition
-
-        Estimated year
-
-        DESCRIPTION_ABOUT_MODEL
-
-        After the summary, provide one paragraph describing the model family in general, including:
-
-        Typical specs
-
-        Known characteristics
-
-        Market positioning
-
-        (Not device-specific — model-line overview.)
-
-        PROHIBITED
-
-        No hallucinated specs
-
-        No overriding images with user text
-
-        No ignoring conflicts
-
-        No markdown formatting around JSON
-
-        No text before JSON`;
+CRITICAL REMINDERS:
+- Fill ALL fields with actual meaningful values
+- Use your knowledge database for identified models - don't leave specs blank
+- Only use "N/A" when truly not applicable
+- No empty strings ""
+- Provide typical specifications for identified devices even if not directly visible in images`;
 
   // Build the message content
   const messageContent: OpenAI.Chat.ChatCompletionContentPart[] = [
@@ -237,7 +188,7 @@ export async function analyzeProductImages(
   ];
 
   try {
-    // Call OpenAI API
+    // Call OpenAI API with optimized parameters
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -246,8 +197,8 @@ export async function analyzeProductImages(
           content: messageContent,
         },
       ],
-      max_tokens: 800,
-      temperature: 0.3,
+      max_tokens: 1500,
+      temperature: 0.2,
     });
 
     const resultText = response.choices[0]?.message?.content?.trim() || '';
@@ -279,46 +230,50 @@ function parseOpenAIResponse(responseText: string): {
 } {
   // Try to extract JSON block (look for first { to last })
   const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-  //console.log('====='+responseText)
+  
   if (!jsonMatch) {
-    throw new Error('Could not parse images');
+    console.error('Failed to parse OpenAI response:', responseText);
+    throw new Error('Could not parse product analysis from images. Please ensure images are clear and show the device clearly.');
   }
 
   const jsonText = jsonMatch[0];
   const jsonEndIndex = responseText.indexOf(jsonText) + jsonText.length;
   
   // Everything after the JSON is the summary
-  const summary = responseText.substring(jsonEndIndex).trim();
+  const summary = responseText.substring(jsonEndIndex).trim() || 'Product identified successfully.';
 
   try {
     const parsed = JSON.parse(jsonText);
     
-    // Validate and transform the response
+    // Validate and transform the response with fallbacks
     const analysis: ProductAnalysisResult = {
-      identified_product: parsed.identified_product || '',
-      brand: parsed.brand || '',
-      color_variants: parsed.color_variants || '',
-      size: parsed.size || '',
-      material_composition: parsed.material_composition || '',
-      distinctive_features: parsed.distinctive_features || '',
-      possible_confusion: parsed.possible_confusion || '',
-      clarity_feedback: parsed.clarity_feedback || '',
-      short_description: parsed.short_description || '',
-      condition_rating: parsed.condition_rating || '',
-      condition_details: parsed.condition_details || '',
-      estimated_year: parsed.estimated_year || '',
-      model: parsed.model || '',
-      model_variant: parsed.model_variant || '',
-      storage: parsed.storage || '',
-      carrier: parsed.carrier || '',
-      connectivity : parsed.connectivity || '',
-      ram: parsed.ram || '',
-      processor: parsed. processor|| '',
-      gpu: parsed.gpu || '',
+      identified_product: parsed.identified_product || parsed.product_name || 'Unknown Product',
+      brand: parsed.brand || 'Unknown',
+      color_variants: parsed.color_variants || parsed.color || 'Unknown',
+      size: parsed.size || parsed.screen_size || 'N/A',
+      material_composition: parsed.material_composition || parsed.materials || 'N/A',
+      distinctive_features: parsed.distinctive_features || parsed.features || 'N/A',
+      possible_confusion: parsed.possible_confusion || 'None',
+      clarity_feedback: parsed.clarity_feedback || 'Images processed',
+      short_description: parsed.short_description || parsed.description || 'No description available',
+      condition_rating: parsed.condition_rating || parsed.condition || 'Good',
+      condition_details: parsed.condition_details || 'No visible damage noted',
+      estimated_year: parsed.estimated_year || parsed.year || 'Unknown',
+      model: parsed.model || 'Unknown',
+      model_variant: parsed.model_variant || parsed.variant || 'Standard Edition',
+      storage: parsed.storage || 'N/A',
+      carrier: parsed.carrier || parsed.carrier_lock_status || 'Unknown',
+      connectivity: parsed.connectivity || '4G/5G',
+      ram: parsed.ram || 'N/A',
+      processor: parsed.processor || parsed.cpu || 'N/A',
+      gpu: parsed.gpu || 'Integrated',
+      estimated_price: parsed.estimated_price || parsed.price || 'Price not available',
     };
 
     return { analysis, summary };
   } catch (error) {
-    throw new Error('Failed to parse JSON from OpenAI response');
+    console.error('JSON parse error:', error);
+    console.error('Attempted to parse:', jsonText);
+    throw new Error('Failed to parse JSON from OpenAI response. The model may have returned invalid JSON.');
   }
 }

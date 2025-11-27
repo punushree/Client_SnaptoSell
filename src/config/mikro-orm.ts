@@ -4,12 +4,13 @@ import {
     MySqlDriver,
     ReflectMetadataProvider,
 } from "@mikro-orm/mysql";
+import dotenv from "dotenv"
+
 import { Account } from "@/lib/server/entities/Account";
 import { ProductDetection } from "@/lib/server/entities/ProductDetection";
 import { User } from "@/lib/server/entities/User";
 import { Session } from "@/lib/server/entities/Session";
 import { Verification } from "@/lib/server/entities/Verification";
-import dotenv from "dotenv"
 
 // const isMikroOrmCommand = () => {
 //     const args = process.argv;
@@ -36,6 +37,7 @@ const MikroORMOptions: Options = {
     password: process.env.DB_PASSWORD,
     port: Number(process.env.DB_PORT || 3306),
     entities: ENTITIES,
+    // entities: ['./src/lib/server/entities'],
     debug: true,
     extensions: [EntityGenerator],
     allowGlobalContext: true,

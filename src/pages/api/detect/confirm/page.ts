@@ -30,6 +30,7 @@ interface ConfirmationRequest {
     ram?: string;
     processor?: string;
     gpu?: string;
+    estimated_price?: string;
   };
 }
 
@@ -151,6 +152,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (updatedData.connectivity) {
         detection.connectivity = updatedData.connectivity.trim();
       }
+      if (updatedData.estimated_price) {
+        detection.estimated_price = updatedData.estimated_price.trim();
+      }
     }
 
     // If user disagreed, still save the record but mark it differently
@@ -201,6 +205,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (updatedData.connectivity) {
         detection.connectivity = updatedData.connectivity.trim();
       }
+      if (updatedData.estimated_price) {
+        detection.estimated_price = updatedData.estimated_price.trim();
+      }
     }
 
     // Save the updated record
@@ -230,6 +237,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
          ram: detection.ram,
          processor: detection.processor,
          gpu: detection.gpu,
+         estimated_price: detection.estimated_price,
       },
     }, { status: 200 });
 
