@@ -15,6 +15,7 @@ import {
 import { useNavigate } from "react-router";
 import SampleImages from "@/components/SampleImages";
 import ProductPricing from "@/components/ProductPricing";
+import ProductAnalysisUI from '@/components/ProductAnalysisUI';
 
 const Page = () => {
   const navigate = useNavigate();
@@ -760,6 +761,8 @@ const Page = () => {
                     </div>
                   )}
                 </Stack>
+                
+                
               </Box>
             )}
 
@@ -773,6 +776,14 @@ const Page = () => {
                     console.log("Pricing updated:", data);
                   }}
                 />
+                 <Box mt="md">
+                <ProductAnalysisUI
+                  analysis={submitSuccess.analysis} 
+                  
+                  
+                  //titl="Final Product Details"
+                />
+                 </Box>
               </Box>
             )}
 
