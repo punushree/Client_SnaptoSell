@@ -108,8 +108,15 @@ export default function ProductAnalysisUI({
   const priceDifference = originalPrice > 0
     ? (100 - (currentPrice / originalPrice) * 100).toFixed(0)
     : 50;
+  
+  // eBay pricing - separate from AI estimate
+  const hasEbayPricing = pricing?.average_price && pricing.average_price > 0;
+  const ebayPrice = hasEbayPricing ? pricing.average_price! : currentPrice;
+  const ebayFee = ebayPrice * 0.1;
+  const ebayEarnings = ebayPrice - ebayFee;
 
-  const formatPrice = (price: number, currency: string = "USD") => {
+  const formatPrice = (price: number | null | undefined, currency: string = "USD") => {
+    if (price === null || price === undefined || price === 0) return "N/A";
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency || "USD",
@@ -119,9 +126,6 @@ export default function ProductAnalysisUI({
   const trustScore = 50; // Could be calculated based on various factors
   const trustLabel = trustScore >= 70 ? "Low Risk" : trustScore >= 40 ? "Medium Risk" : "High Risk";
   const trustColor = trustScore >= 70 ? "green" : trustScore >= 40 ? "yellow" : "red";
-
-  const ebayFee = currentPrice * 0.1; // 10% fee
-  const ebayEarnings = currentPrice - ebayFee;
 
   return (
     <Stack gap="lg">
@@ -268,10 +272,20 @@ export default function ProductAnalysisUI({
             <Text size="sm" mt="xs" c="dimmed">Audience: Global</Text>
 
             <Divider my="md" />
-            <Text size="sm">Sale Price: <b>{analysis.estimated_price || "N/A"}</b></Text>
-            <Text size="sm">Platform Fee: <b>{currentPrice > 0 ? formatPrice(currentPrice * 0.1) : "N/A"}</b></Text>
+            <Text size="sm">Sale Price: <b>{hasEbayPricing ? formatPrice(ebayPrice, pricing?.price_currency) : (analysis.estimated_price || "N/A")}</b></Text>
+            {hasEbayPricing && pricing.ebay_items_count && (
+              <Text size="xs" c="dimmed" mt="xs">
+                Based on {pricing.ebay_items_count} eBay listing{pricing.ebay_items_count !== 1 ? 's' : ''}
+              </Text>
+            )}
+            <Text size="sm">Platform Fee: <b>{hasEbayPricing ? formatPrice(ebayFee, pricing?.price_currency) : (currentPrice > 0 ? formatPrice(currentPrice * 0.1) : "N/A")}</b></Text>
 
-            <Text fw={600} mt="md">Your Earnings: {currentPrice > 0 ? formatPrice(currentPrice * 0.9) : "N/A"}</Text>
+            <Text fw={600} mt="md">Your Earnings: {hasEbayPricing ? formatPrice(ebayEarnings, pricing?.price_currency) : (currentPrice > 0 ? formatPrice(currentPrice * 0.9) : "N/A")}</Text>
+            {hasEbayPricing && (
+              <Badge size="sm" color="blue" mt="xs">
+                eBay Market Data
+              </Badge>
+            )}
           </Card>
         </SimpleGrid>
       </Card>

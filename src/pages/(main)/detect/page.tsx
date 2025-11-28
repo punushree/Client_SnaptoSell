@@ -36,6 +36,7 @@ import {
 import { useNavigate } from "react-router";
 import SampleImages from "@/components/SampleImages";
 import ProductAnalysisUI from "@/components/ProductAnalysisUI";
+import ProductPricing from "@/components/ProductPricing";
 
 const Page = () => {
   const navigate = useNavigate();
@@ -61,6 +62,9 @@ const Page = () => {
   const [confirmationError, setConfirmationError] = useState<string | null>(
     null
   );
+  
+  // State for pricing data from eBay
+  const [pricingData, setPricingData] = useState<any>(null);
 
   // Form fields for editing product information
   const [editedProduct, setEditedProduct] = useState({
@@ -1069,7 +1073,19 @@ const Page = () => {
             {/* Product Analysis UI - Show after confirmation */}
             {submitSuccess?.uuid && submitSuccess?.status === "completed" && (
               <Box mt="md">
-                <ProductAnalysisUI analysis={submitSuccess.analysis} />
+                {/* Show ProductPricing component to fetch eBay pricing */}
+                <ProductPricing 
+                  uuid={submitSuccess.uuid} 
+                  onPricingUpdated={(data) => setPricingData(data)}
+                />
+                
+                {/* Show ProductAnalysisUI with both analysis and pricing data */}
+                <Box mt="md">
+                  <ProductAnalysisUI 
+                    analysis={submitSuccess.analysis} 
+                    pricing={pricingData}
+                  />
+                </Box>
               </Box>
             )}
 
