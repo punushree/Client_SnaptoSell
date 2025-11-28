@@ -1483,16 +1483,26 @@ const Page = () => {
                 </Stack>
               </Group>
 
-              {/* Product Details Section - Show only when we have images */}
-              {capturedImages.length >= 3 && (
+              {/* Product Details Section to Show when we have at least 1 image */}
+              {capturedImages.length >= 0 && (
                 <>
                   <Divider />
                   <Text fw={600}>Device / Product Details</Text>
+                  
+                  {/* massage less than 3 images */}
+                  {capturedImages.length < 3 && (
+                    <Alert icon={<IconAlertCircle size={16} />} color="yellow" mt="sm" mb="md">
+                      <Text size="sm">
+                        Please upload minimun 3 images and Add product details ({capturedImages.length}/3 minimum)
+                      </Text>
+                    </Alert>
+                  )}
+
                   <input
                     type="text"
                     value={details}
                     onChange={(e) => setDetails(e.target.value)}
-                    placeholder="Enter device details..."
+                    placeholder="Enter product details..."
                     required
                     style={{
                       width: "100%",
@@ -1503,12 +1513,13 @@ const Page = () => {
                     }}
                   />
 
-                  <Group justify="center">
+                  <Group justify="center" mt="md">
                     <Button
                       color="green"
                       onClick={handleSubmit}
                       disabled={
                         capturedImages.length < 3 ||
+                        capturedImages.length > 5 ||
                         details.trim() === "" ||
                         isSubmitting
                       }
