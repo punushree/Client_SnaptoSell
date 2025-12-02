@@ -44,6 +44,7 @@ interface ProductAnalysis {
   possible_confusion?: string;
   clarity_feedback?: string;
   estimated_price?: string;
+  confidence_score?: number;
 }
 
 interface PricingData {
@@ -80,7 +81,7 @@ export default function ProductAnalysisUI({
   }
 
   const productName = analysis.identified_product || "Unknown Product";
-  const confidenceScore = 50; // Could be calculated based on analysis completeness
+  const confidenceScore = analysis.confidence_score || 50;
   
   // Parse estimated_price from AI (e.g., "$400-$500" or "$250")
   const parsePrice = (priceStr?: string): { min: number; max: number; avg: number } => {
@@ -123,6 +124,10 @@ export default function ProductAnalysisUI({
     }).format(price);
   };
 
+  // Confidence badge logic
+  const confidenceLabel = confidenceScore >= 70 ? "High Confidence" : confidenceScore >= 40 ? "Medium Confidence" : "Low Confidence";
+  const confidenceColor = confidenceScore >= 70 ? "green" : confidenceScore >= 40 ? "yellow" : "orange";
+
   const trustScore = 50; // Could be calculated based on various factors
   const trustLabel = trustScore >= 70 ? "Low Risk" : trustScore >= 40 ? "Medium Risk" : "High Risk";
   const trustColor = trustScore >= 70 ? "green" : trustScore >= 40 ? "yellow" : "red";
@@ -133,7 +138,7 @@ export default function ProductAnalysisUI({
       <Card shadow="md" radius="md" p="lg">
         <Group justify="space-between">
           <Text size="xl" fw={700}>{productName}</Text>
-          <Badge color="green" size="lg">High Confidence</Badge>
+          <Badge color={confidenceColor} size="lg">{confidenceLabel}</Badge>
         </Group>
 
         <Text mt="sm" c="dimmed" size="sm">
@@ -159,7 +164,7 @@ export default function ProductAnalysisUI({
 
           <div>
             <Text size="sm" fw={600}>Confidence Score</Text>
-            <Progress value={confidenceScore} color="green" size="lg" radius="md" mt="sm" />
+            <Progress value={confidenceScore} color={confidenceColor} size="lg" radius="md" mt="sm" />
             <Text size="sm" mt="xs">{confidenceScore}%</Text>
 
             <Group mt="lg" gap="xs">

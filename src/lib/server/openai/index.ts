@@ -27,6 +27,7 @@ export interface ProductAnalysisResult {
   processor: string;
   gpu: string;
   estimated_price: string;
+  confidence_score: number;
 }
 
 export interface ProductAnalysisResponse {
@@ -81,28 +82,32 @@ export async function analyzeProductImages(
 
   // Construct the enhanced prompt
   const promptText = `You are ELECTRA, an advanced electronics identification expert specializing in mobile phones, laptops, and tablets.
-
 ANALYSIS INPUT:
 - Number of images: ${imageCount}
 - User description: "${descriptionText}"
-
 YOUR TASK:
 Analyze the provided images and identify the product with maximum detail. You MUST provide comprehensive specifications by:
-
 1. VISUAL ANALYSIS: Examine all visible details in the images (design, logos, model numbers, condition)
 2. MODEL KNOWLEDGE: Once you identify the device model, use your extensive knowledge database to provide its standard specifications
 3. LOGICAL INFERENCE: Fill in typical specifications for the identified model even if not directly visible
-
 CRITICAL INSTRUCTIONS:
-
 ✓ When you identify a device model (e.g., "Samsung Galaxy S23"), you MUST fill in ALL known specifications for that model
 ✓ Use "N/A" ONLY when a specification is truly not applicable (e.g., carrier lock status for WiFi-only tablets)
 ✓ Never leave fields with empty strings - always provide a value
 ✓ Prioritize image evidence, but use your knowledge base to complete the full device profile
 ✓ If you can identify the model, you KNOW its processor, typical RAM, release year, etc.
-
+ 
+The confidence_score represents how certain you are about the identified product.
+✓ Evaluate confidence based on:
+✓ how clearly the images show the product,
+✓ how many important details you can extract from the images,
+✓ whether the user description matches what you see,
+✓ how consistent the final identified product feels compared to real-world knowledge.
+ 
+If images are unclear, missing angles, or contradict the user description → lower confidence.
+If images are clear, details match, and the product is easy to verify → higher confidence.
+ 
 FIELD REQUIREMENTS:
-
 - identified_product: Full product name (e.g., "Samsung Galaxy S23", "MacBook Pro 14-inch")
 - brand: Manufacturer name (e.g., "Samsung", "Apple", "Dell", "HP")
 - model: Model name (e.g., "Galaxy S23", "iPhone 15 Pro", "XPS 15")
@@ -124,7 +129,8 @@ FIELD REQUIREMENTS:
 - possible_confusion: Similar models that could be confused with this one (e.g., "Could be mistaken for Galaxy S23+") or "None"
 - clarity_feedback: Assessment of image quality (e.g., "Images are clear and comprehensive" or "Blurry images, recommend clearer photos")
 - estimated_price: Estimated market value range based on model, condition, and specifications (e.g., "$400-$500", "$800-$1000", "$150-$200")
-
+- confidence_score: Reflects how certain the model is based on image clarity, detail visibility, and consistency between user input and what is seen
+ 
 EXAMPLE KNOWLEDGE APPLICATION:
 If you identify "Samsung Galaxy S23 (base model)", you know it has:
 - Processor: Snapdragon 8 Gen 2 (US) or Exynos 2200 (international)
@@ -134,7 +140,6 @@ If you identify "Samsung Galaxy S23 (base model)", you know it has:
 - Released: 2023
 - Connectivity: 5G
 - Material: Armor Aluminum frame with Gorilla Glass Victus 2
-
 If you identify "iPhone 15 Pro", you know it has:
 - Processor: A17 Pro chip
 - RAM: 8GB
@@ -142,9 +147,7 @@ If you identify "iPhone 15 Pro", you know it has:
 - Released: 2023
 - Connectivity: 5G
 - Material: Titanium frame with Ceramic Shield front
-
 JSON OUTPUT FORMAT (output ONLY JSON first, no markdown blocks, no \`\`\`):
-
 {
   "identified_product": "Full Product Name Here",
   "brand": "Brand Name",
@@ -167,10 +170,9 @@ JSON OUTPUT FORMAT (output ONLY JSON first, no markdown blocks, no \`\`\`):
   "possible_confusion": "Similar models or None",
   "clarity_feedback": "Image quality assessment",
   "estimated_price": "$XXX-$XXX"
+  "confidence_score": 0-100,
 }
-
 After the JSON, provide a brief summary paragraph describing the identified device, its condition, and key specifications.
-
 CRITICAL REMINDERS:
 - Fill ALL fields with actual meaningful values
 - Use your knowledge database for identified models - don't leave specs blank
@@ -268,6 +270,7 @@ function parseOpenAIResponse(responseText: string): {
       processor: parsed.processor || parsed.cpu || 'N/A',
       gpu: parsed.gpu || 'Integrated',
       estimated_price: parsed.estimated_price || parsed.price || 'Price not available',
+      confidence_score: typeof parsed.confidence_score === 'number' ? parsed.confidence_score : 50,
     };
 
     return { analysis, summary };

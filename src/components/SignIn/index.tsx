@@ -120,7 +120,7 @@ const SignIn = () => {
                 onChange={(e) => setRememberMe(e.currentTarget.checked)}
                 disabled={loading}
               />
-              <Anchor component="button" size="sm" type="button">
+              <Anchor component={Link} size="sm" type="button" to={'/forgot-password'}>
                 Forgot password?
               </Anchor>
             </Group>
