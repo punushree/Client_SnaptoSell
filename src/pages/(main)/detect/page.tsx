@@ -387,11 +387,15 @@ const Page = () => {
         );
       }
 
-      // Show success state with confirmed data
+      // Update submitSuccess with the confirmed/updated data from the server
       setShowConfirmation(false);
       setSubmitSuccess({
         ...submitSuccess,
         userConfirmed: result.data.userConfirmed,
+        analysis: {
+          ...submitSuccess.analysis,
+          ...editedProduct,
+        },
       });
     } catch (err) {
       const errorMessage =

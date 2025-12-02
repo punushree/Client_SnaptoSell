@@ -15,6 +15,14 @@ export const auth = betterAuth({
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
   }),
+  trustedOrigins: [
+    "http://localhost:3000",
+    "https://localhost:3000",
+    "http://localhost:5173",
+    "https://localhost:5173",
+    "http://*.snaptosell.com",
+    "https://*.snaptosell.com",
+  ],
   emailAndPassword: {
     enabled: true,
   },
