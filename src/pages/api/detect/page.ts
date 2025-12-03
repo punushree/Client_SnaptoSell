@@ -196,7 +196,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return Response.json(
         {
           success: false,
-          error: "We're still working on identification for these items - please double check the results",
+          error: "We're still working on identification for these items - please double check the results. Please upload only smartphones, laptops and tablets.",
           details: detection.errorMessage,
           uuid: detection.uuid,
         },

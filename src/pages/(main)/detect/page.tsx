@@ -1144,8 +1144,8 @@ const Page = () => {
             withCloseButton
             title={
               <Group>
-                <IconAlertCircle color="orange" />
-                <Text fw={600}>Please Review</Text>
+                {/* <IconAlertCircle color="orange" /> */}
+                <Text fw={600}>Work in progress</Text>
               </Group>
             }
           >
@@ -1489,7 +1489,10 @@ const Page = () => {
               {capturedImages.length >= 0 && (
                 <>
                   <Divider />
-                  <Text fw={600}>Device / Product Details</Text>
+                  <Group gap={4}>
+                    <Text fw={600}>Device / Product Details</Text>
+                    <Text c="red" fw={600}>*</Text>
+                  </Group>
                   
                   {/* massage less than 3 images */}
                   {capturedImages.length < 3 && (
@@ -1504,7 +1507,7 @@ const Page = () => {
                     type="text"
                     value={details}
                     onChange={(e) => setDetails(e.target.value)}
-                    placeholder="Enter product details..."
+                    placeholder="Enter product details... *"
                     required
                     style={{
                       width: "100%",
@@ -1514,6 +1517,13 @@ const Page = () => {
                       fontSize: 14,
                     }}
                   />
+                  {details.trim() === "" && (
+                    <Alert icon={<IconAlertCircle size={16} />} color="yellow" mt="sm" mb="md">
+                      <Text size="sm">
+                        Product details are required
+                      </Text>
+                    </Alert>
+                  )}
 
                   <Group justify="center" mt="md">
                     <Button
