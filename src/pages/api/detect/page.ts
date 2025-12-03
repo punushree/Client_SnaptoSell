@@ -134,7 +134,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
       // Check if OpenAI analysis succeeded
       if (results[1].status === 'rejected') {
-        throw new Error(`OpenAI analysis failed: ${results[1].reason}`);
+        throw new Error(``);
+        // throw new Error(`OpenAI analysis failed: ${results[1].reason}`);
       }
 
       const [s3UploadResults, analysisResult] = [results[0].value, results[1].value];
@@ -195,7 +196,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return Response.json(
         {
           success: false,
-          error: 'Failed to analyze images',
+          error: "We're still working on identification for these items - please double check the results",
           details: detection.errorMessage,
           uuid: detection.uuid,
         },

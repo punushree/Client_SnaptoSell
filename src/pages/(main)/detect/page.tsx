@@ -308,10 +308,8 @@ const Page = () => {
       console.log("Response data:", result);
 
       if (!response.ok) {
-        // Show detailed error from backend
-        const errorMsg = result.details
-          ? `${result.error || "Error"}: ${result.details}`
-          : result.error ||
+        // Show user-friendly error from backend
+        const errorMsg = result.error ||
             result.details ||
             `Failed to submit images (Status: ${response.status})`;
         console.error("API Error:", errorMsg, result);
@@ -1146,8 +1144,8 @@ const Page = () => {
             withCloseButton
             title={
               <Group>
-                <IconAlertCircle color="red" />
-                <Text fw={600}>Submission Error</Text>
+                <IconAlertCircle color="orange" />
+                <Text fw={600}>Please Review</Text>
               </Group>
             }
           >
