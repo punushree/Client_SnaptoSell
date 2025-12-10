@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import type { ReasoningEffort, VerbosityLevel } from '~/config/analyzer.config';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -278,5 +279,232 @@ function parseOpenAIResponse(responseText: string): {
     console.error('JSON parse error:', error);
     console.error('Attempted to parse:', jsonText);
     throw new Error('Failed to parse JSON from OpenAI response. The model may have returned invalid JSON.');
+  }
+}
+
+/**
+ * Analyze product category (electronics/fashion/other)
+ */
+export async function analyzeProductCategory(
+  images: Array<{ buffer: Buffer; mimeType: string }>,
+  userDescription?: string
+): Promise<{ category: string; confidence_score: number; detected_product_type: string; reasoning: string }> {
+  const imageBlocks: OpenAI.Chat.ChatCompletionContentPart[] = images.map((img) => ({
+    type: 'image_url',
+    image_url: {
+      url: bufferToBase64(img.buffer, img.mimeType),
+    },
+  }));
+
+  const prompt = `You are a product category classifier for a multi-category resale marketplace.
+
+Your ONLY task is to determine the PRIMARY product category from the uploaded images.
+
+CATEGORIES:
+1. **electronics** - smartphones, laptops, tablets, cameras, headphones, smartwatches, gaming consoles, TVs, monitors, drones, e-readers, etc.
+2. **fashion** - clothing, footwear, bags, accessories, jewelry, watches (fashion/luxury), sunglasses, belts, hats, scarves, etc.
+3. **other** - furniture, home decor, books, toys, sports equipment, kitchen items, tools, collectibles, art, etc.
+
+CLASSIFICATION RULES:
+- If image shows a phone, computer, or electronic device → "electronics"
+- If image shows clothing, shoes, bags, or fashion items → "fashion"
+- If image shows anything else → "other"
+- If multiple items from DIFFERENT categories → choose the PRIMARY/LARGEST item
+- If uncertain between categories → use "other"
+
+${userDescription ? `USER PROVIDED TEXT: "${userDescription}"` : ''}
+
+OUTPUT FORMAT (JSON only, no markdown):
+{
+  "category": "electronics" | "fashion" | "other",
+  "confidence_score": 0-100,
+  "detected_product_type": "brief description of what you see",
+  "reasoning": "1-2 sentences explaining classification"
+}`;
+
+  const messageContent: OpenAI.Chat.ChatCompletionContentPart[] = [
+    { type: 'text', text: prompt },
+    ...imageBlocks,
+  ];
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: messageContent }],
+      max_tokens: 500,
+      temperature: 0.1,
+    });
+
+    const resultText = response.choices[0]?.message?.content?.trim() || '';
+    const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error('Could not parse category response');
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      category: parsed.category || 'other',
+      confidence_score: parsed.confidence_score || 50,
+      detected_product_type: parsed.detected_product_type || 'Unknown',
+      reasoning: parsed.reasoning || 'Category detected from images',
+    };
+  } catch (error) {
+    console.error('Category detection error:', error);
+    throw new Error(`Failed to detect category: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Analyze product identification based on category
+ */
+export async function analyzeProductIdentification(
+  imageUrls: string[],
+  category: string,
+  userDescription?: string
+): Promise<ProductAnalysisResult> {
+  const imageBlocks: OpenAI.Chat.ChatCompletionContentPart[] = imageUrls.map((url) => ({
+    type: 'image_url',
+    image_url: { url },
+  }));
+
+  // Use different prompts based on category
+  let prompt = '';
+  
+  if (category === 'electronics') {
+    prompt = `You are an electronics identification expert. Analyze these images and identify the product with maximum detail.
+
+${userDescription ? `User description: "${userDescription}"` : ''}
+
+Provide comprehensive specifications including:
+- Product name and model
+- Brand
+- Technical specs (RAM, storage, processor, GPU if applicable)
+- Display size
+- Condition assessment
+- Estimated year
+- Market value estimate
+
+Output JSON with all fields from the standard product analysis format.`;
+  } else if (category === 'fashion') {
+    prompt = `You are a fashion product expert. Analyze these images and identify the clothing/accessory item.
+
+${userDescription ? `User description: "${userDescription}"` : ''}
+
+Provide details including:
+- Item type and brand
+- Size and material composition
+- Color and distinctive features
+- Condition assessment
+- Estimated year/season
+- Market value estimate
+
+Output JSON with all fields from the standard product analysis format.`;
+  } else {
+    prompt = `You are a product identification expert. Analyze these images and identify the product.
+
+${userDescription ? `User description: "${userDescription}"` : ''}
+
+Provide details including:
+- Product name and type
+- Brand (if applicable)
+- Material and size
+- Condition assessment
+- Distinctive features
+- Market value estimate
+
+Output JSON with all fields from the standard product analysis format.`;
+  }
+
+  const messageContent: OpenAI.Chat.ChatCompletionContentPart[] = [
+    { type: 'text', text: prompt },
+    ...imageBlocks,
+  ];
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: messageContent }],
+      max_tokens: 1500,
+      temperature: 0.2,
+    });
+
+    const resultText = response.choices[0]?.message?.content?.trim() || '';
+    const { analysis } = parseOpenAIResponse(resultText);
+    return analysis;
+  } catch (error) {
+    console.error('Identification error:', error);
+    throw new Error(`Failed to identify product: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Verify product authenticity and specifications
+ */
+export async function verifyProductAuthenticity(
+  stage1Data: any,
+  category: string
+): Promise<{
+  authenticity_status: string;
+  verification_confidence: number;
+  specs_match: boolean;
+  authenticity_warnings: string[];
+  verification_summary: string;
+}> {
+  const productName = `${stage1Data.brand} ${stage1Data.model}`.trim();
+  
+  const prompt = `You are a product verification expert. Verify the authenticity and specifications of this ${category} product:
+
+Product: ${productName}
+Claimed Specifications:
+- Brand: ${stage1Data.brand}
+- Model: ${stage1Data.model}
+${stage1Data.storage ? `- Storage: ${stage1Data.storage}` : ''}
+${stage1Data.ram ? `- RAM: ${stage1Data.ram}` : ''}
+${stage1Data.processor ? `- Processor: ${stage1Data.processor}` : ''}
+${stage1Data.color_variants ? `- Color: ${stage1Data.color_variants}` : ''}
+- Condition: ${stage1Data.condition_rating}
+
+Using your knowledge and web search capabilities, verify:
+1. Does this product model exist?
+2. Do the claimed specifications match official specs?
+3. Are there any authenticity concerns?
+4. Are the specifications plausible for this model?
+
+Output JSON:
+{
+  "authenticity_status": "Authentic" | "Suspicious" | "Unknown",
+  "verification_confidence": 0-100,
+  "specs_match": true | false,
+  "authenticity_warnings": ["warning1", "warning2"],
+  "verification_summary": "Brief summary of verification findings"
+}`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 800,
+      temperature: 0.1,
+    });
+
+    const resultText = response.choices[0]?.message?.content?.trim() || '';
+    const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error('Could not parse verification response');
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      authenticity_status: parsed.authenticity_status || 'Unknown',
+      verification_confidence: parsed.verification_confidence || 50,
+      specs_match: parsed.specs_match ?? true,
+      authenticity_warnings: parsed.authenticity_warnings || [],
+      verification_summary: parsed.verification_summary || 'Verification completed',
+    };
+  } catch (error) {
+    console.error('Verification error:', error);
+    throw new Error(`Failed to verify product: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

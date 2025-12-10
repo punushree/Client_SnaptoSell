@@ -9,6 +9,7 @@ import type { ActionFunctionArgs } from "react-router";
 import { getOrm } from "@/lib/server/db";
 import { ProductDetection } from "@/lib/server/entities/ProductDetection";
 import { getCurrentUserId } from "@/lib/server/auth/getSession";
+import { updateProductMetadata, getFullProductData } from "@/lib/server/services/metadataService";
 
 interface ConfirmationRequest {
   uuid: string;
@@ -102,116 +103,80 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Update confirmation status
     detection.userConfirmed = isCorrect;
     detection.confirmedAt = new Date();
+    
+    // Set status to completed after confirmation
+    detection.status = 'completed';
 
     // If user confirmed and provided updated data, update the detection record
     if (isCorrect && updatedData) {
-      if (updatedData.identified_product) {
-        detection.identified_product = updatedData.identified_product.trim();
-      }
-      if (updatedData.brand) {
-        detection.brand = updatedData.brand.trim();
-      }
-      if (updatedData.color_variants) {
-        detection.color_variants = updatedData.color_variants.trim();
-      }
-      if (updatedData.size) {
-        detection.size = updatedData.size.trim();
-      }
-      if (updatedData.condition_rating !== undefined && updatedData.condition_rating !== null) {
-        detection.condition_rating = updatedData.condition_rating;
-      }
-      if (updatedData.estimated_year) {
-        detection.estimated_year = updatedData.estimated_year.trim();
-      }
-      if (updatedData.short_description) {
-        detection.short_description = updatedData.short_description.trim();
-      }
-      if (updatedData.storage) {
-        detection.storage = updatedData.storage.trim();
-      }
-
-      if (updatedData.ram) {
-        detection.ram = updatedData.ram.trim();
-      }
-      if (updatedData.processor) {
-        detection.processor = updatedData.processor.trim();
-      }
-      if (updatedData.gpu) {
-        detection.gpu = updatedData.gpu.trim();
-      }
-
-      if (updatedData.model) {
-        detection.model = updatedData.model.trim();
-      }
-      if (updatedData.model_variant) {
-        detection.model_variant = updatedData.model_variant.trim();
-      }
-      if (updatedData.carrier) {
-        detection.carrier = updatedData.carrier.trim();
-      }
-      if (updatedData.connectivity) {
-        detection.connectivity = updatedData.connectivity.trim();
-      }
-      if (updatedData.estimated_price) {
-        detection.estimated_price = updatedData.estimated_price.trim();
+      // Define which fields are core (stored in product_detection table)
+      const coreFields = ['identified_product', 'brand', 'model', 'color_variants', 'condition_rating', 'product_condition', 'estimated_year', 'short_description'];
+      
+      // Define which fields are metadata (stored in product_metadata table)
+      const metadataFields = ['storage', 'ram', 'processor', 'gpu', 'size', 'model_variant', 'carrier', 'connectivity', 'estimated_price', 'material_composition'];
+      
+      // Update core fields in detection entity
+      const coreUpdates: any = {};
+      coreFields.forEach(field => {
+        if (updatedData[field as keyof typeof updatedData]) {
+          const value = updatedData[field as keyof typeof updatedData];
+          coreUpdates[field] = typeof value === 'string' ? value.trim() : value;
+        }
+      });
+      Object.assign(detection, coreUpdates);
+      
+      // Update metadata fields in product_metadata table
+      const metadataUpdates: any = {};
+      metadataFields.forEach(field => {
+        if (updatedData[field as keyof typeof updatedData]) {
+          const value = updatedData[field as keyof typeof updatedData];
+          metadataUpdates[field] = typeof value === 'string' ? value.trim() : value;
+        }
+      });
+      
+      if (Object.keys(metadataUpdates).length > 0) {
+        await updateProductMetadata(em, detection, metadataUpdates, 'user_edit');
       }
     }
 
     // If user disagreed, still save the record but mark it differently
     if (!isCorrect && updatedData) {
       // User corrected the information
-      if (updatedData.identified_product) {
-        detection.identified_product = updatedData.identified_product.trim();
-      }
-      if (updatedData.brand) {
-        detection.brand = updatedData.brand.trim();
-      }
-      if (updatedData.color_variants) {
-        detection.color_variants = updatedData.color_variants.trim();
-      }
-      if (updatedData.size) {
-        detection.size = updatedData.size.trim();
-      }
-      if (updatedData.condition_rating !== undefined && updatedData.condition_rating !== null) {
-        detection.condition_rating = updatedData.condition_rating;
-      }
-      if (updatedData.estimated_year) {
-        detection.estimated_year = updatedData.estimated_year.trim();
-      }
-      if (updatedData.short_description) {
-        detection.short_description = updatedData.short_description.trim();
-      }
-      if (updatedData.storage) {
-        detection.storage = updatedData.storage.trim();
-      }
-      if (updatedData.ram) {
-        detection.ram = updatedData.ram.trim();
-      }
-      if (updatedData.processor) {
-        detection.processor = updatedData.processor.trim();
-      }
-      if (updatedData.gpu) {
-        detection.gpu = updatedData.gpu.trim();
-      }
-      if (updatedData.model) {
-        detection.model = updatedData.model.trim();
-      }
-      if (updatedData.model_variant) {
-        detection.model_variant = updatedData.model_variant.trim();
-      }
-      if (updatedData.carrier) {
-        detection.carrier = updatedData.carrier.trim();
-      }
-      if (updatedData.connectivity) {
-        detection.connectivity = updatedData.connectivity.trim();
-      }
-      if (updatedData.estimated_price) {
-        detection.estimated_price = updatedData.estimated_price.trim();
+      // Define which fields are core (stored in product_detection table)
+      const coreFields = ['identified_product', 'brand', 'model', 'color_variants', 'condition_rating', 'product_condition', 'estimated_year', 'short_description'];
+      
+      // Define which fields are metadata (stored in product_metadata table)
+      const metadataFields = ['storage', 'ram', 'processor', 'gpu', 'size', 'model_variant', 'carrier', 'connectivity', 'estimated_price', 'material_composition'];
+      
+      // Update core fields in detection entity
+      const coreUpdates: any = {};
+      coreFields.forEach(field => {
+        if (updatedData[field as keyof typeof updatedData]) {
+          const value = updatedData[field as keyof typeof updatedData];
+          coreUpdates[field] = typeof value === 'string' ? value.trim() : value;
+        }
+      });
+      Object.assign(detection, coreUpdates);
+      
+      // Update metadata fields in product_metadata table
+      const metadataUpdates: any = {};
+      metadataFields.forEach(field => {
+        if (updatedData[field as keyof typeof updatedData]) {
+          const value = updatedData[field as keyof typeof updatedData];
+          metadataUpdates[field] = typeof value === 'string' ? value.trim() : value;
+        }
+      });
+      
+      if (Object.keys(metadataUpdates).length > 0) {
+        await updateProductMetadata(em, detection, metadataUpdates, 'user_edit');
       }
     }
 
     // Save the updated record
     await em.flush();
+
+    // Get complete product data (core + metadata) for response
+    const fullProductData = await getFullProductData(em, uuid);
 
     return Response.json({
       success: true,
@@ -219,25 +184,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         ? 'Product information confirmed successfully' 
         : 'Product information updated successfully',
       data: {
-        uuid: detection.uuid,
+        ...fullProductData,
         userConfirmed: detection.userConfirmed,
         confirmedAt: detection.confirmedAt,
-        identified_product: detection.identified_product,
-        brand: detection.brand,
-        color_variants: detection.color_variants,
-        size: detection.size,
-        condition_rating: detection.condition_rating,
-        estimated_year: detection.estimated_year,
-        short_description: detection.short_description,
-         storage: detection.storage,
-        model: detection.model,
-        model_variant: detection.model_variant,
-        carrier: detection.carrier,
-        connectivity: detection.connectivity,
-         ram: detection.ram,
-         processor: detection.processor,
-         gpu: detection.gpu,
-         estimated_price: detection.estimated_price,
       },
     }, { status: 200 });
 

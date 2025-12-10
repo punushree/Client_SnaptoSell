@@ -99,7 +99,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       );
     }
 
-    // Prepare product data
+    // Prepare product data - include all relevant fields for search query
     const productData = {
       uuid: detection.uuid,
       identified_product: detection.identified_product,
@@ -108,8 +108,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       model_variant: detection.model_variant,
       storage: detection.storage,
       size: detection.size,
+      color_variants: detection.color_variants,
       condition_rating: detection.condition_rating,
     };
+
+    console.log('Processing pricing for product:', {
+      identified_product: productData.identified_product,
+      brand: productData.brand,
+      model: productData.model,
+      storage: productData.storage,
+    });
 
     // Process product pricing
     const result = await ebayService.processProduct(productData);

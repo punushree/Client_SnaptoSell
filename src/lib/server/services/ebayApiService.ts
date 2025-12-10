@@ -170,67 +170,93 @@ export class EbayAPIService {
   formatSearchQuery(product: ProductData): string {
     const queryParts: string[] = [];
 
-    // Identified Product (most important)
-    if (product.identified_product) {
-      const identified = String(product.identified_product).trim();
-      if (identified && identified.toLowerCase() !== 'none') {
-        queryParts.push(identified);
-      }
-    }
-
-    // Brand
-    if (product.brand) {
+    // Brand + Model + Variant (most specific combination for electronics)
+    if (product.brand && product.model) {
       const brand = String(product.brand).trim();
-      if (brand && brand.toLowerCase() !== 'none') {
+      const model = String(product.model).trim();
+      
+      if (brand && brand.toLowerCase() !== 'none' && brand.toLowerCase() !== 'unknown') {
+        if (model && model.toLowerCase() !== 'none' && model.toLowerCase() !== 'unknown') {
+          // For brand + model, we want them together for better results
+          queryParts.push(`${brand} ${model}`);
+          
+          // Add model variant if available
+          if (product.model_variant) {
+            const variant = String(product.model_variant).trim();
+            if (variant && variant.toLowerCase() !== 'none' && variant.toLowerCase() !== 'unknown') {
+              queryParts.push(variant);
+            }
+          }
+        } else {
+          queryParts.push(brand);
+        }
+      }
+    } else if (product.brand) {
+      // Only brand available
+      const brand = String(product.brand).trim();
+      if (brand && brand.toLowerCase() !== 'none' && brand.toLowerCase() !== 'unknown') {
         queryParts.push(brand);
       }
-    }
-
-    // Model
-    if (product.model) {
+    } else if (product.model) {
+      // Only model available
       const model = String(product.model).trim();
-      if (model && model.toLowerCase() !== 'none') {
+      if (model && model.toLowerCase() !== 'none' && model.toLowerCase() !== 'unknown') {
         queryParts.push(model);
       }
     }
 
-    // Model Variant
-    if (product.model_variant) {
-      const variant = String(product.model_variant).trim();
-      if (variant && variant.toLowerCase() !== 'none') {
-        queryParts.push(variant);
+    // If no brand/model, use identified_product
+    if (queryParts.length === 0 && product.identified_product) {
+      const identified = String(product.identified_product).trim();
+      if (identified && identified.toLowerCase() !== 'none' && identified.toLowerCase() !== 'unknown') {
+        queryParts.push(identified);
       }
     }
 
-    // Storage (for electronics)
+    // Storage (for electronics) - important for price differentiation
     if (product.storage) {
       const storage = String(product.storage).trim();
-      if (storage && storage.toLowerCase() !== 'none') {
+      if (storage && storage.toLowerCase() !== 'none' && storage.toLowerCase() !== 'unknown') {
         queryParts.push(storage);
       }
     }
 
-    // Size
+    // Size (for fashion/clothing)
     if (product.size) {
       const size = String(product.size).trim();
-      if (size && size.toLowerCase() !== 'none') {
-        queryParts.push(size);
+      if (size && size.toLowerCase() !== 'none' && size.toLowerCase() !== 'unknown') {
+        // Only add size if it's not already in the query
+        const currentQuery = queryParts.join(' ').toLowerCase();
+        if (!currentQuery.includes(size.toLowerCase())) {
+          queryParts.push(size);
+        }
+      }
+    }
+
+    // Condition (optional - can help narrow down results)
+    if (product.condition_rating) {
+      const condition = String(product.condition_rating).trim().toLowerCase();
+      // Only add specific conditions that are meaningful on eBay
+      if (condition === 'new' || condition === 'like new' || condition === 'refurbished') {
+        queryParts.push(condition);
       }
     }
 
     let searchQuery = queryParts.join(' ');
 
+    // Limit to 200 characters for eBay API
     if (searchQuery.length > 200) {
       searchQuery = searchQuery.substring(0, 200);
     }
 
+    console.log('Generated eBay search query:', searchQuery);
     return searchQuery.trim();
   }
 
   /**
    * Call eBay API to search for products
    */
-  async callEbayAPI(searchQuery: string, limit: number = 5): Promise<EbayApiResponse> {
+  async callEbayAPI(searchQuery: string, limit: number = 10): Promise<EbayApiResponse> {
     // Get fresh access token
     const accessToken = await this.getAccessToken();
 
