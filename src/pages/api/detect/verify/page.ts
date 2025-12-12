@@ -89,11 +89,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         verification_summary: string;
       }>({
         prompt,
-        webSearch: isWebSearchEnabled(stageKey as any), // Should be true for verification
-        reasoningEffort: getReasoningLevel(stageKey as any), // Should be "high"
+        webSearch: isWebSearchEnabled(stageKey as any),
+        reasoningEffort: getReasoningLevel(stageKey as any),
         verbosity: getVerbosityLevel(stageKey as any),
-        maxTokens: 600, // Reduced for faster response
-        temperature: 0.1
+        maxTokens: 400, // Optimized for speed
+        temperature: 0.05 // Very low for consistency and speed
       });
 
       if (!response.success || !response.data) {

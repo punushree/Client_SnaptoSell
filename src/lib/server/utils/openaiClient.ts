@@ -34,7 +34,7 @@ export interface APIResponse<T = any> {
  */
 export class OpenAIClient {
   private client: OpenAI;
-  private model: string = 'gpt-4o-mini'; // Faster and cheaper than gpt-4o
+  private model: string = 'gpt-4o'; // Fastest available model with vision capabilities
 
   constructor(apiKey?: string) {
     const key = apiKey || process.env.OPENAI_API_KEY;
@@ -60,7 +60,7 @@ export class OpenAIClient {
       reasoningEffort = 'medium',
       verbosity = 'low',
       maxRetries = 2,
-      maxTokens = 1000, // Reduced default for faster responses
+      maxTokens = 1500, // Reduced default for faster responses
       temperature = 0.2,
     } = options;
 

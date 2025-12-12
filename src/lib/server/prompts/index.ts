@@ -285,17 +285,14 @@ EXTRACTED SPECIFICATIONS FROM STAGE 1:
 ${JSON.stringify(stage1Data, null, 2)}
 
 YOUR TASK:
-1. Search for official product information and authentication guides
-2. Verify the identified brand and model against official sources
-3. Check for common counterfeit indicators
-4. Compare extracted features against authentic versions
-5. Assess likelihood of authenticity
+Using your extensive knowledge of fashion brands and authentication, assess the authenticity likelihood based on visible details and brand knowledge.
 
-WEB SEARCH STRATEGY:
-- Search: "${brand} ${productName.split(' ')[0]} authentication guide"
-- Search: "${brand} official website" (if luxury/premium brand)
-- Search: "${brand} counterfeit detection tips"
-- Search: "${brand} ${stage1Data.specific_category || ''} authentic vs fake"
+VERIFICATION APPROACH:
+1. Use your knowledge of ${brand} to verify if this product line/style exists
+2. Check if claimed brand tier matches observed quality indicators
+3. Assess common counterfeit indicators visible in the analysis
+4. Compare features against typical authentic ${brand} products
+5. Provide realistic authenticity assessment
 
 AUTHENTICATION CHECKS:
 1. **Logo & Branding**:
@@ -354,7 +351,7 @@ Now perform the authentication analysis using web search.`;
   }
 
   // Electronics and other categories
-  return `You are a product authentication and verification expert.
+  return `You are a product authentication and verification expert with extensive knowledge of electronics specifications.
 
 CONTEXT:
 A product has been identified as: ${productName}
@@ -364,23 +361,30 @@ EXTRACTED DATA:
 ${JSON.stringify(stage1Data, null, 2)}
 
 YOUR TASK:
-Use web search to verify this product's specifications and authenticity.
+Using your knowledge of electronics products, verify if the identified product specifications are plausible and check for common authenticity concerns.
 
-VERIFICATION STEPS:
-1. Search for official specifications
-2. Compare extracted specs with official specs
-3. Check for fraud indicators
-4. Verify model variants and configurations
+VERIFICATION CHECKS:
+1. Does this product model actually exist?
+2. Do the claimed specifications match typical specs for this model?
+3. Are there any obvious red flags or inconsistencies?
+4. Do the specifications align with the claimed year/model?
+
+IMPORTANT:
+- Use your extensive knowledge of electronics products (phones, laptops, tablets)
+- Check if the combination of brand + model + specs is realistic
+- Flag any obvious mismatches (e.g., impossible RAM for that year, non-existent model)
+- If you recognize the product, verify against your knowledge
+- Be realistic about limitations - mark uncertain if you're not confident
 
 OUTPUT FORMAT:
-Return ONLY valid JSON:
+Return ONLY valid JSON (no markdown, no extra text):
 
 {
-  "authenticity_status": "Authentic/Suspicious/Unknown",
+  "authenticity_status": "Verified Authentic" | "Likely Authentic" | "Uncertain" | "Suspicious" | "Likely Counterfeit",
   "verification_confidence": 0-100,
-  "specs_match": true or false,
-  "authenticity_warnings": ["List any concerns"],
-  "verification_summary": "Brief summary of findings"
+  "specs_match": true | false,
+  "authenticity_warnings": ["list any concerns or empty array"],
+  "verification_summary": "Brief 2-3 sentence summary explaining your assessment based on your product knowledge"
 }`;
 }
 
@@ -406,7 +410,7 @@ export function getStage3Prompt(stage1Data: any, stage2Data: any, category: stri
     }
     const searchQuery = searchParts.join(' ');
 
-    return `You are a fashion resale pricing analyst. Your task is to search fashion resale marketplaces and report the prices you find.
+    return `You are a fashion resale pricing expert with extensive knowledge of fashion brand values and typical resale prices.
 
 PRODUCT TO PRICE:
 - Brand: ${brand}
@@ -415,94 +419,108 @@ PRODUCT TO PRICE:
 - Condition: ${condition}
 - Authentication Status: ${authStatus}
 
-SEARCH QUERY: "${searchQuery}"
-
 YOUR TASK:
-Search these fashion resale websites and report the prices you find for similar items.
+Based on your knowledge of fashion resale markets, provide realistic price estimates for this item across different platforms.
 
-WEBSITES TO SEARCH:
-1. **Poshmark.com** - Major fashion resale marketplace
-2. **Depop.com** - Trendy and vintage fashion marketplace
-3. **eBay.com** (fashion category) - Large marketplace with sold listings
-4. **ThredUp.com** - Online consignment and thrift store
-5. **Mercari.com** - General marketplace with fashion category
+PRICING FACTORS TO CONSIDER:
+1. **Brand Tier**: ${stage1Data.brand_tier || 'unknown'} - affects base value
+2. **Condition**: ${condition} - impacts price significantly
+3. **Authentication**: ${authStatus} - authenticated items command premium
+4. **Item Type**: ${product} - some categories hold value better
+5. **Market Trends**: Consider current demand for this brand/style
 
-FOR EACH WEBSITE:
-- Search for active listings of this item
-- Look for similar: brand + item type + size + condition
-- Extract the prices you see
-- Report: lowest price, highest price, average/median price
-- Count how many listings you found
+PRICING GUIDELINES:
+- **Ultra-luxury brands** (Hermès, Chanel, LV): Hold 40-70% of retail value
+- **Luxury brands** (Burberry, Coach, MK): Hold 25-50% of retail value  
+- **Premium/Athletic Premium**: Hold 30-60% of retail value
+- **Athletic mainstream**: Hold 20-40% of retail value
+- **Contemporary/Fast fashion**: Hold 10-30% of retail value
 
-IMPORTANT:
-- Just report what you find - NO calculations or adjustments
-- If a marketplace has no listings, report "no listings found"
-- Focus on SOLD listings on eBay when available (more reliable than active)
-- Be honest if prices vary widely or if data is limited
+CONDITION ADJUSTMENTS:
+- NWT/NWOT: 70-90% of category guideline
+- Like New/Excellent: 60-80% of category guideline
+- Very Good: 50-70% of category guideline
+- Good: 40-60% of category guideline
+- Fair: 25-40% of category guideline
 
 OUTPUT FORMAT (strict JSON, no markdown):
 {
   "poshmark_market": {
-    "lowest": "$45",
-    "highest": "$120",
-    "average": "$75",
-    "sample_size": 8
+    "lowest": "$XX",
+    "highest": "$XX",
+    "average": "$XX",
+    "sample_size": "estimated based on knowledge"
   },
   "depop_market": {
-    "lowest": "$40",
-    "highest": "$110",
-    "average": "$70",
-    "sample_size": 5
+    "lowest": "$XX",
+    "highest": "$XX",
+    "average": "$XX",
+    "sample_size": "estimated based on knowledge"
   },
   "ebay_fashion_market": {
-    "lowest": "$42",
-    "highest": "$125",
-    "average": "$78",
-    "sample_size": 12
+    "lowest": "$XX",
+    "highest": "$XX",
+    "average": "$XX",
+    "sample_size": "estimated based on knowledge"
   },
   "thredup_market": {
-    "lowest": "$35",
-    "highest": "$95",
-    "average": "$65",
-    "sample_size": 6
+    "lowest": "$XX",
+    "highest": "$XX",
+    "average": "$XX",
+    "sample_size": "estimated based on knowledge"
   },
   "mercari_market": {
-    "lowest": "$38",
-    "highest": "$105",
-    "average": "$72",
-    "sample_size": 7
+    "lowest": "$XX",
+    "highest": "$XX",
+    "average": "$XX",
+    "sample_size": "estimated based on knowledge"
   },
-  "overall_recommendation": "Based on 38 total listings across 5 marketplaces, the typical price range for this item is $65-$80. Most common price point is around $72. Condition and authentication status may affect final price."
+  "overall_recommendation": "Based on brand tier, condition, and typical resale patterns, this item should be priced in the $XX-$XX range. [Explain reasoning based on factors above]"
 }
 
-NOTES FOR PRICING:
-- If item is authenticated (Verified/Likely Authentic), mention it may command premium pricing
-- If condition is excellent/NWT, note it should be at higher end of range
-- If brand tier is luxury/ultra-luxury, note market may have higher prices
-- Be specific about which marketplaces had the most data
-
-Now search the fashion resale marketplaces and provide pricing data in JSON format.`;
+Now provide realistic pricing estimates based on your fashion market knowledge.`;
   }
 
   // Electronics pricing
   const productName = `${stage1Data.brand || ''} ${stage1Data.model || ''}`.trim();
   const condition = stage1Data.condition_rating || 'Unknown';
+  const year = stage1Data.estimated_year || 'Unknown';
 
-  return `You are a market pricing analyst for electronics resale.
+  return `You are an electronics resale pricing expert with extensive knowledge of device depreciation and market values.
 
-CONTEXT:
-Product: ${productName}
-Condition: ${condition}
-Category: ${category}
+PRODUCT TO PRICE:
+- Product: ${productName}
+- Condition: ${condition}
+- Year: ${year}
+- Category: ${category}
 
-STAGE 1 DATA:
+FULL PRODUCT DATA:
 ${JSON.stringify(stage1Data, null, 2)}
 
-STAGE 2 DATA:
+AUTHENTICATION STATUS:
 ${JSON.stringify(stage2Data, null, 2)}
 
 YOUR TASK:
-Search resale marketplaces (eBay, Facebook Marketplace, etc.) for pricing data on this product.
+Based on your knowledge of electronics depreciation and resale markets, provide realistic price estimates.
+
+PRICING FACTORS:
+1. **Original Retail Price**: Estimate based on product/year
+2. **Age Depreciation**: Electronics lose ~20-30% value per year
+3. **Condition Impact**:
+   - Like New/Excellent: 80-90% of age-adjusted value
+   - Good: 70-80% of age-adjusted value
+   - Fair: 50-70% of age-adjusted value
+   - Poor: 30-50% of age-adjusted value
+4. **Specs Impact**: Higher RAM/storage = higher value
+5. **Brand Premium**: Apple typically holds value better (60-80% vs 40-60% for others)
+6. **Authenticity**: Verified products command 10-20% premium
+
+DEPRECIATION EXAMPLES:
+- 2024 device: ~70-85% of retail
+- 2023 device: ~50-70% of retail
+- 2022 device: ~35-55% of retail
+- 2021 device: ~25-40% of retail
+- 2020 or older: ~15-30% of retail
 
 OUTPUT FORMAT (strict JSON, no markdown):
 {
@@ -510,21 +528,21 @@ OUTPUT FORMAT (strict JSON, no markdown):
     "lowest": "$XXX",
     "highest": "$XXX",
     "median": "$XXX",
-    "sample_size": N
+    "sample_size": "estimated from market knowledge"
   },
   "ebay_market": {
     "lowest": "$XXX",
     "highest": "$XXX",
     "median": "$XXX",
-    "sample_size": N
+    "sample_size": "estimated from market knowledge"
   },
   "SnaptoSell_suggestion": {
     "typical_resale_price": "$XXX",
     "price_range": "$XXX-$XXX",
     "confidence": "high|medium|low",
-    "pricing_notes": "Brief explanation of pricing"
+    "pricing_notes": "Explain pricing based on: estimated retail price, year, depreciation rate, condition adjustment, and specs. Be specific about calculations."
   }
 }
 
-Now search for pricing data and provide the JSON response.`;
+Provide realistic pricing based on your electronics market knowledge and depreciation patterns.`;
 }

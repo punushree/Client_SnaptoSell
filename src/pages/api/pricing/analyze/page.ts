@@ -98,15 +98,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Get pricing prompt
     const prompt = getStage3Prompt(stage1Data, stage2Data, detection.category || 'other');
 
-    // Call OpenAI with web search enabled
+    // Call OpenAI with optimized settings for speed
     const client = getOpenAIClient();
     const response = await client.callAndParse<any>({
       prompt,
       webSearch: true, // Enable web search for marketplace pricing
       reasoningEffort: 'low',
-      verbosity: 'medium',
-      maxTokens: 1500,
-      temperature: 0.2
+      verbosity: 'low', // Reduced for faster response
+      maxTokens: 700, // Reduced for faster pricing
+      temperature: 0.1 // Lower for speed
     });
 
     if (!response.success || !response.data) {

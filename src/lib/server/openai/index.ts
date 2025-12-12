@@ -1,5 +1,4 @@
 import OpenAI from 'openai';
-import type { ReasoningEffort, VerbosityLevel } from '~/config/analyzer.config';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -191,7 +190,7 @@ CRITICAL REMINDERS:
   ];
 
   try {
-    // Call OpenAI API with optimized parameters
+    // Call OpenAI API with optimized parameters for speed
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -200,8 +199,8 @@ CRITICAL REMINDERS:
           content: messageContent,
         },
       ],
-      max_tokens: 1500,
-      temperature: 0.2,
+      max_tokens: 800, // Reduced for faster response while maintaining quality
+      temperature: 0.1, // Lower temperature = faster generation
     });
 
     const resultText = response.choices[0]?.message?.content?.trim() || '';
@@ -329,9 +328,9 @@ OUTPUT FORMAT (JSON only, no markdown):
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini', // Faster and cheaper for simple classification
       messages: [{ role: 'user', content: messageContent }],
-      max_tokens: 500,
+      max_tokens: 200, // Reduced for faster response
       temperature: 0.1,
     });
 
@@ -425,8 +424,8 @@ Output JSON with all fields from the standard product analysis format.`;
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [{ role: 'user', content: messageContent }],
-      max_tokens: 1500,
-      temperature: 0.2,
+      max_tokens: 600, // Reduced for faster response
+      temperature: 0.1, // Lower for speed
     });
 
     const resultText = response.choices[0]?.message?.content?.trim() || '';
@@ -484,8 +483,8 @@ Output JSON:
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 800,
-      temperature: 0.1,
+      max_tokens: 400, // Reduced for faster verification
+      temperature: 0.05, // Very low for speed and consistency
     });
 
     const resultText = response.choices[0]?.message?.content?.trim() || '';

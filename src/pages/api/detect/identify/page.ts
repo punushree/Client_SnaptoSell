@@ -96,8 +96,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         webSearch: isWebSearchEnabled(stageKey as any),
         reasoningEffort: getReasoningLevel(stageKey as any),
         verbosity: getVerbosityLevel(stageKey as any),
-        maxTokens: 1000, // Reduced for faster response
-        temperature: 0.2
+        maxTokens: 600, // Optimized for speed
+        temperature: 0.1 // Lower for faster generation
       });
 
       if (!response.success || !response.data) {
