@@ -99,22 +99,6 @@ export function validateStage1Response(
     warnings.push(`Possible confusion detected: ${data.possible_confusion}`);
   }
 
-  if (data.clarity_feedback && data.clarity_feedback.toLowerCase().includes('unclear')) {
-    warnings.push(`Image clarity issue: ${data.clarity_feedback}`);
-  }
-
-  // Track missing optional fields
-  const optionalFields = ['storage', 'ram', 'processor', 'gpu', 'color_variants'];
-  for (const field of optionalFields) {
-    if (!data[field] || data[field] === 'N/A' || data[field] === 'Unknown') {
-      missingFields.push(field);
-    }
-  }
-
-  if (missingFields.length > 3) {
-    warnings.push(`Many missing fields (${missingFields.length}): ${missingFields.join(', ')}`);
-  }
-
   return {
     valid: errors.length === 0,
     errors,
@@ -125,7 +109,359 @@ export function validateStage1Response(
 }
 
 // ═══════════════════════════════════════════════════════════
-// STAGE 1 VALIDATION (FASHION)
+// MULTIPLE PRODUCT DETECTION
+// ═══════════════════════════════════════════════════════════
+
+export interface MultipleProductCheck {
+  multiple_detected: boolean;
+  error_message?: string;
+  details?: any;
+}
+
+export function detectMultipleProducts(stage1Data: any): MultipleProductCheck {
+  try {
+    // Check if model explicitly flagged multiple products
+    const possibleConfusion = stage1Data.possible_confusion || '';
+    const clarityFeedback = stage1Data.clarity_feedback || '';
+    
+    // Keywords indicating multiple products
+    const multiProductIndicators = [
+      'multiple products',
+      'different products',
+      'two products',
+      'several devices',
+      'various items'
+    ];
+    
+    const confusionLower = possibleConfusion.toLowerCase();
+    const feedbackLower = clarityFeedback.toLowerCase();
+    
+    for (const indicator of multiProductIndicators) {
+      if (confusionLower.includes(indicator) || feedbackLower.includes(indicator)) {
+        return {
+          multiple_detected: true,
+          error_message: 'Multiple products detected in images',
+          details: {
+            possible_confusion: possibleConfusion,
+            clarity_feedback: clarityFeedback
+          }
+        };
+      }
+    }
+    
+    // Check if identified_product contains "and" or multiple items
+    const identified = stage1Data.identified_product || '';
+    if (identified && (identified.toLowerCase().includes(' and ') || identified.includes(' & '))) {
+      return {
+        multiple_detected: true,
+        error_message: `Multiple products detected: ${identified}`,
+        details: { identified_product: identified }
+      };
+    }
+    
+    return { multiple_detected: false };
+  } catch (error) {
+    console.error('Error detecting multiple products:', error);
+    return { multiple_detected: false };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMAGE CLARITY VALIDATION
+// ═══════════════════════════════════════════════════════════
+
+export interface ClarityCheck {
+  clear: boolean;
+  issues?: string[];
+  confidence?: number;
+  error_message?: string;
+  suggestions?: string[];
+}
+
+export function checkImageClarity(stage1Data: any): ClarityCheck {
+  try {
+    const clarityFeedback = stage1Data.clarity_feedback || '';
+    const confidenceScore = stage1Data.confidence_score || 0;
+    
+    // Keywords indicating unclear images
+    const clarityIssues = [
+      'blurry', 'unclear', 'poor quality', 'cannot see',
+      'not visible', 'too dark', 'too bright', 'obstructed',
+      'need better', 'need clearer', 'difficult to identify'
+    ];
+    
+    const feedbackLower = clarityFeedback.toLowerCase();
+    const detectedIssues: string[] = [];
+    
+    for (const issue of clarityIssues) {
+      if (feedbackLower.includes(issue)) {
+        detectedIssues.push(issue);
+      }
+    }
+    
+    // If low confidence or issues detected, images are unclear
+    if (confidenceScore < 50 || detectedIssues.length > 0) {
+      return {
+        clear: false,
+        issues: detectedIssues,
+        confidence: confidenceScore,
+        error_message: 'Images are not clear enough for accurate identification',
+        suggestions: [
+          'Upload clearer, well-lit photos',
+          'Include close-up of product logo/branding',
+          'Include screenshot of device settings (for phones/tablets)',
+          'Show model number if visible'
+        ]
+      };
+    }
+    
+    return { clear: true, confidence: confidenceScore };
+  } catch (error) {
+    console.error('Error checking image clarity:', error);
+    return { clear: true }; // Default to true to avoid blocking
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONFIDENCE THRESHOLD CHECK
+// ═══════════════════════════════════════════════════════════
+
+export interface ConfidenceCheck {
+  passes: boolean;
+  confidence: number;
+  required?: number;
+  error_message?: string;
+  suggestions?: string[];
+}
+
+export function checkConfidenceThreshold(
+  stage1Data: any,
+  minConfidence: number = 50
+): ConfidenceCheck {
+  try {
+    const confidenceScore = stage1Data.confidence_score || 0;
+    
+    if (confidenceScore < minConfidence) {
+      return {
+        passes: false,
+        confidence: confidenceScore,
+        required: minConfidence,
+        error_message: `Confidence too low (${confidenceScore}%). Minimum required: ${minConfidence}%`,
+        suggestions: [
+          'Upload additional clearer images',
+          'Provide text description with product details',
+          'Include images showing model number or specifications'
+        ]
+      };
+    }
+    
+    return {
+      passes: true,
+      confidence: confidenceScore
+    };
+  } catch (error) {
+    console.error('Error checking confidence threshold:', error);
+    return { passes: true, confidence: 0 }; // Default to true to avoid blocking
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TEXT-IMAGE CONTRADICTION DETECTION
+// ═══════════════════════════════════════════════════════════
+
+export interface ContradictionCheck {
+  contradictions_found: boolean;
+  message?: string;
+  details?: string;
+}
+
+export function detectContradictions(stage1Data: any): ContradictionCheck {
+  try {
+    const imageTextMatch = stage1Data.image_text_match;
+    const clarityFeedback = stage1Data.clarity_feedback || '';
+    
+    if (imageTextMatch === false) {
+      return {
+        contradictions_found: true,
+        message: 'User text contradicts image analysis',
+        details: clarityFeedback
+      };
+    }
+    
+    // Check clarity feedback for contradiction keywords
+    const contradictionKeywords = [
+      'contradiction', 'mismatch', 'differs from',
+      'inconsistent', 'does not match', 'conflict'
+    ];
+    
+    const feedbackLower = clarityFeedback.toLowerCase();
+    
+    for (const keyword of contradictionKeywords) {
+      if (feedbackLower.includes(keyword)) {
+        return {
+          contradictions_found: true,
+          message: 'Potential contradictions detected',
+          details: clarityFeedback
+        };
+      }
+    }
+    
+    return { contradictions_found: false };
+  } catch (error) {
+    console.error('Error detecting contradictions:', error);
+    return { contradictions_found: false };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// COMPREHENSIVE STAGE 1 VALIDATION
+// ═══════════════════════════════════════════════════════════
+
+export interface ComprehensiveValidation {
+  valid: boolean;
+  errors: Array<{
+    type: string;
+    message: string;
+    details?: any;
+  }>;
+  suggestions: string[];
+  confidence: number;
+}
+
+export function validateStage1Comprehensive(
+  stage1Data: any,
+  minConfidence: number = 50
+): ComprehensiveValidation {
+  try {
+    const errors: Array<{ type: string; message: string; details?: any }> = [];
+    const suggestions: string[] = [];
+    
+    // Check for multiple products
+    const multiCheck = detectMultipleProducts(stage1Data);
+    if (multiCheck.multiple_detected) {
+      errors.push({
+        type: 'multiple_products',
+        message: multiCheck.error_message || 'Multiple products detected',
+        details: multiCheck.details
+      });
+      suggestions.push('Upload images of only ONE product');
+    }
+    
+    // Check image clarity
+    const clarityCheck = checkImageClarity(stage1Data);
+    if (!clarityCheck.clear) {
+      errors.push({
+        type: 'unclear_images',
+        message: clarityCheck.error_message || 'Images are unclear',
+        details: { issues: clarityCheck.issues }
+      });
+      if (clarityCheck.suggestions) {
+        suggestions.push(...clarityCheck.suggestions);
+      }
+    }
+    
+    // Check confidence threshold
+    const confidenceCheck = checkConfidenceThreshold(stage1Data, minConfidence);
+    if (!confidenceCheck.passes) {
+      errors.push({
+        type: 'low_confidence',
+        message: confidenceCheck.error_message || 'Low confidence',
+        details: { confidence: confidenceCheck.confidence }
+      });
+      if (confidenceCheck.suggestions) {
+        suggestions.push(...confidenceCheck.suggestions);
+      }
+    }
+    
+    // Check for contradictions
+    const contradictionCheck = detectContradictions(stage1Data);
+    if (contradictionCheck.contradictions_found) {
+      errors.push({
+        type: 'text_image_mismatch',
+        message: contradictionCheck.message || 'Contradiction detected',
+        details: { feedback: contradictionCheck.details }
+      });
+      suggestions.push('Verify your text description matches the images');
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors,
+      suggestions: [...new Set(suggestions)], // Remove duplicates
+      confidence: stage1Data.confidence_score || 0
+    };
+  } catch (error) {
+    console.error('Error in comprehensive validation:', error);
+    return {
+      valid: false,
+      errors: [{
+        type: 'validation_error',
+        message: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }],
+      suggestions: [],
+      confidence: 0
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// FASHION VALIDATION
+// ═══════════════════════════════════════════════════════════
+
+export interface FashionValidation {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  missingDetails: string[];
+  canProceed: boolean;
+}
+
+export function validateFashionStage1(
+  data: any,
+  minConfidence: number = 40
+): FashionValidation {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const missingDetails: string[] = [];
+  
+  // Check brand (critical)
+  if (!data.brand || data.brand === 'Unknown' || data.brand === 'unbranded') {
+    errors.push('Brand is required for fashion authentication');
+  }
+  
+  // Check optional but important fields
+  const optionalFields = ['size', 'material_composition', 'specific_category', 'color_variants'];
+  for (const field of optionalFields) {
+    if (!data[field] || data[field] === 'Unknown') {
+      missingDetails.push(field);
+    }
+  }
+  
+  // Size is often not visible - warn but don't error
+  if (missingDetails.includes('size')) {
+    warnings.push('Size not detected - this is common if size tag is not visible');
+  }
+  
+  // Check confidence
+  const confidence = data.confidence_score || 0;
+  if (confidence < minConfidence) {
+    warnings.push(`Low confidence score: ${confidence}% (threshold: ${minConfidence}%)`);
+  }
+  
+  // Fashion allows up to 5 missing details
+  const canProceed = errors.length === 0 && missingDetails.length <= 5;
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    missingDetails,
+    canProceed
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// STAGE 1 VALIDATION (FASHION) - LEGACY
 // ═══════════════════════════════════════════════════════════
 
 export function validateFashionStage1Response(
@@ -184,6 +520,27 @@ export function validateFashionStage1Response(
     missingFields,
     confidence
   };
+}
+
+// ═══════════════════════════════════════════════════════════
+// BRAND TIER HELPER
+// ═══════════════════════════════════════════════════════════
+
+export function getBrandTierContext(stage1Data: any): string | null {
+  const brandTier = stage1Data.brand_tier?.toLowerCase();
+  
+  if (!brandTier) return null;
+  
+  const contexts: Record<string, string> = {
+    'ultra-luxury': '💎 This is an ultra-luxury brand. Authentication is critical due to high counterfeit risk.',
+    'luxury': '✨ This is a luxury brand. Careful authentication recommended.',
+    'premium designer': '🌟 This is a premium designer brand. Authentication adds value.',
+    'fast fashion': '👕 This is a fast fashion brand. Focus on condition over authenticity.',
+    'vintage': '🕰️ This is a vintage item. Age and condition are key factors.',
+    'unbranded': '📦 This is an unbranded item. Authentication not applicable.'
+  };
+  
+  return contexts[brandTier] || null;
 }
 
 // ═══════════════════════════════════════════════════════════

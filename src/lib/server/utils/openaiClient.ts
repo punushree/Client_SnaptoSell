@@ -34,7 +34,7 @@ export interface APIResponse<T = any> {
  */
 export class OpenAIClient {
   private client: OpenAI;
-  private model: string = 'gpt-4o'; // Fastest available model with vision capabilities
+  private model: string = 'gpt-5.1-2025-11-13'; // GPT-5 with vision and web search (matches Python app)
 
   constructor(apiKey?: string) {
     const key = apiKey || process.env.OPENAI_API_KEY;
@@ -102,16 +102,28 @@ export class OpenAIClient {
               content: contentBlocks
             }
           ],
-          max_tokens: maxTokens,
+          max_completion_tokens: maxTokens, // Changed from max_tokens for GPT-5 compatibility
           temperature,
           // Note: reasoning_effort and web_search are not standard OpenAI params
           // They're used in the Python backend's custom API wrapper
           // For now, we'll use standard OpenAI parameters
         });
 
+        // Debug logging for response structure
+        console.log('OpenAI Response:', JSON.stringify({
+          choices: response.choices?.length,
+          hasMessage: !!response.choices?.[0]?.message,
+          hasContent: !!response.choices?.[0]?.message?.content,
+          contentLength: response.choices?.[0]?.message?.content?.length,
+          finishReason: response.choices?.[0]?.finish_reason
+        }, null, 2));
+
         const outputText = response.choices[0]?.message?.content?.trim() || '';
 
         if (!outputText) {
+          console.error('Empty response details:', {
+            fullResponse: JSON.stringify(response, null, 2)
+          });
           throw new Error('Empty response from OpenAI');
         }
 

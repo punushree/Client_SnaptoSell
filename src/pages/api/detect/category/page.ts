@@ -152,7 +152,7 @@ OUTPUT FORMAT (JSON only, no markdown):
         webSearch: isWebSearchEnabled('stage0'),
         reasoningEffort: getReasoningLevel('stage0'),
         verbosity: getVerbosityLevel('stage0'),
-        maxTokens: 300, // Reduced for faster response
+        maxTokens: 1500, // GPT-5 needs tokens for reasoning + output
         temperature: 0.1
       });
 

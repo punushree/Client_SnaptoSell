@@ -245,6 +245,30 @@ const AIMarketplacePricing = ({ uuid, category, onPricingComplete }: AIMarketpla
         {pricingData.SnaptoSell_suggestion && (
           <Box mt="md">
             <Divider my="md" />
+            
+            {/* Pricing Factors */}
+            {(pricingData as any).pricing_factors && (pricingData as any).pricing_factors.length > 0 && (
+              <Box mb="lg">
+                <Text fw={600} size="md" mb="sm">📋 Pricing Factors</Text>
+                <Stack gap="xs">
+                  {(pricingData as any).pricing_factors.map((factor: string, index: number) => (
+                    <Group key={index} gap="xs">
+                      <Badge size="xs" color="blue">•</Badge>
+                      <Text size="sm">{factor}</Text>
+                    </Group>
+                  ))}
+                </Stack>
+              </Box>
+            )}
+
+            {/* Market Trends */}
+            {(pricingData as any).market_trends && (
+              <Alert color="blue" mb="md" icon="📈">
+                <Text fw={600} size="sm" mb="xs">Market Trends</Text>
+                <Text size="sm">{(pricingData as any).market_trends}</Text>
+              </Alert>
+            )}
+
             <Text fw={600} size="lg" mb="md">
               💡 SnaptoSell Recommendation
             </Text>

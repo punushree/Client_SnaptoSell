@@ -92,18 +92,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         webSearch: isWebSearchEnabled(stageKey as any),
         reasoningEffort: getReasoningLevel(stageKey as any),
         verbosity: getVerbosityLevel(stageKey as any),
-        maxTokens: 400, // Optimized for speed
-        temperature: 0.05 // Very low for consistency and speed
+        maxTokens: 5000, // High limit: GPT-5 needs tokens for reasoning + output
+        temperature: 0.2
+      });
+
+      console.log('Verification API response:', {
+        success: response.success,
+        hasData: !!response.data,
+        error: response.error,
+        message: response.message,
+        executionTime: response.executionTime
       });
 
       if (!response.success || !response.data) {
-        throw new Error(response.message || 'Verification failed');
+        const errorMsg = response.message || 'Empty response from OpenAI';
+        console.error('Verification API call failed:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       const verificationResult = response.data;
-      const executionTime = tracker.stop();
+      const executionTime = response.executionTime || 0;
 
-      // Validate response
+      // Validate response structure
       const validation = validateStage2Response(verificationResult);
 
       if (!validation.valid) {

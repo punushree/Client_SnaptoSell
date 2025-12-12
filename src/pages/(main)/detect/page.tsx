@@ -133,6 +133,23 @@ const DetectPage = () => {
   // Sample images modal state
   const [showSampleImages, setShowSampleImages] = useState(false);
 
+  // Execution time tracking
+  const [timeBreakdown, setTimeBreakdown] = useState<{
+    stage0?: number;
+    stage1?: number;
+    stage2?: number;
+    stage3?: number;
+  }>({});
+
+  // Validation errors and retry
+  const [validationErrors, setValidationErrors] = useState<Array<{
+    type: string;
+    message: string;
+    details?: any;
+  }>>([]);
+  const [validationSuggestions, setValidationSuggestions] = useState<string[]>([]);
+  const [showRetryModal, setShowRetryModal] = useState(false);
+
   // Start camera
   const startCamera = async (mode: "user" | "environment" = facingMode) => {
     try {
@@ -281,6 +298,8 @@ const DetectPage = () => {
     setIsLoading(true);
     setError(null);
 
+    const startTime = Date.now();
+
     try {
       const formData = new FormData();
       formData.append("description", description.trim());
@@ -300,6 +319,10 @@ const DetectPage = () => {
       });
 
       const result = await response.json();
+      const executionTime = (Date.now() - startTime) / 1000;
+
+      // Track execution time
+      setTimeBreakdown(prev => ({ ...prev, stage0: executionTime }));
 
       if (!response.ok) {
         throw new Error(result.error || "Category detection failed");
@@ -328,6 +351,10 @@ const DetectPage = () => {
 
     setIsLoading(true);
     setError(null);
+    setValidationErrors([]);
+    setValidationSuggestions([]);
+
+    const startTime = Date.now();
 
     try {
       const response = await fetch("/api/detect/identify", {
@@ -341,15 +368,36 @@ const DetectPage = () => {
       });
 
       const result = await response.json();
+      const executionTime = (Date.now() - startTime) / 1000;
+
+      // Track execution time
+      setTimeBreakdown(prev => ({ ...prev, stage1: executionTime }));
 
       if (!response.ok) {
         throw new Error(result.error || "Identification failed");
       }
 
       if (result.success) {
-        setIdentificationData(result.data.identification);
-        setEditedProduct(result.data.identification);
-        setActive(2); // Move to step 3 (review)
+        const identData = result.data.identification;
+        
+        // Check if validation data is included
+        if (result.data.validation && !result.data.validation.valid) {
+          // Show validation errors
+          setValidationErrors(result.data.validation.errors || []);
+          setValidationSuggestions(result.data.validation.suggestions || []);
+          setShowRetryModal(true);
+          return;
+        }
+
+        setIdentificationData(identData);
+        setEditedProduct(identData);
+        
+        // For 'other' category, skip to completion (no verification/pricing needed)
+        if (categoryData.category === 'other') {
+          setActive(5); // Skip directly to completion
+        } else {
+          setActive(2); // Move to step 3 (review for electronics/fashion)
+        }
       } else {
         throw new Error(result.error || "Identification failed");
       }
@@ -370,6 +418,8 @@ const DetectPage = () => {
     setIsLoading(true);
     setError(null);
 
+    const startTime = Date.now();
+
     try {
       const response = await fetch("/api/detect/verify", {
         method: "POST",
@@ -381,6 +431,10 @@ const DetectPage = () => {
       });
 
       const result = await response.json();
+      const executionTime = (Date.now() - startTime) / 1000;
+
+      // Track execution time
+      setTimeBreakdown(prev => ({ ...prev, stage2: executionTime }));
 
       if (!response.ok) {
         throw new Error(result.error || "Verification failed");
@@ -556,7 +610,8 @@ const DetectPage = () => {
                 display: 'none',
               },
               root: {
-                minHeight: '220px', // Ensure enough height for 5 steps
+                // Adjust height based on category (fewer steps for 'other')
+                minHeight: categoryData?.category === 'other' ? '180px' : '250px',
               }
             } : undefined}
           >
@@ -575,19 +630,29 @@ const DetectPage = () => {
               description="Review product details"
               icon={<IconSearch size={18} />}
             />
-            <Stepper.Step
-              label="Verify"
-              description="Authenticity check"
-              icon={<IconShieldCheck size={18} />}
-            />
-            <Stepper.Step
-              label="Pricing"
-              description="Market price analysis"
-              icon={<IconCurrencyDollar size={18} />}
-            />
-            {/* <Stepper.Completed> */}
-              {/* Empty - content shown in Box below */}
-            {/* </Stepper.Completed> */}
+            {/* Conditionally show Verify and Pricing steps (not for 'other' category) */}
+            {categoryData?.category && categoryData.category !== 'other' && (
+              <>
+                <Stepper.Step
+                  label="Verify"
+                  description={categoryData?.category === 'fashion' ? 'Authentication check' : 'Authenticity check'}
+                  icon={<IconShieldCheck size={18} />}
+                />
+                <Stepper.Step
+                  label="Pricing"
+                  description="Market price analysis"
+                  icon={<IconCurrencyDollar size={18} />}
+                />
+              </>
+            )}
+            {/* For 'other' category - show completion step instead */}
+            {categoryData?.category === 'other' && (
+              <Stepper.Step
+                label="Complete"
+                description="Analysis complete"
+                icon={<IconCircleCheck size={18} />}
+              />
+            )}
           </Stepper>
         </Box>
 
@@ -995,13 +1060,26 @@ const DetectPage = () => {
                             condition_rating: value || "",
                           })
                         }
-                        data={[
-                          "Like New",
-                          "Excellent",
-                          "Good",
-                          "Fair",
-                          "Poor",
-                        ]}
+                        data={
+                          categoryData?.category === 'fashion'
+                            ? [
+                                { value: "NWT", label: "NWT (New With Tags)" },
+                                { value: "NWOT", label: "NWOT (New Without Tags)" },
+                                { value: "like new", label: "Like New" },
+                                { value: "excellent pre-owned condition", label: "Excellent Pre-Owned" },
+                                { value: "very good pre-owned condition", label: "Very Good Pre-Owned" },
+                                { value: "good pre-owned condition", label: "Good Pre-Owned" },
+                                { value: "fair pre-owned condition", label: "Fair Pre-Owned" },
+                                { value: "poor condition", label: "Poor Condition" },
+                              ]
+                            : [
+                                { value: "Excellent", label: "Excellent" },
+                                { value: "Good", label: "Good" },
+                                { value: "Fair", label: "Fair" },
+                                { value: "Poor", label: "Poor" },
+                              ]
+                        }
+                        searchable
                       />
                     </Grid.Col>
                     
@@ -1019,6 +1097,56 @@ const DetectPage = () => {
                       />
                     </Grid.Col>
 
+                    {/* Fashion-specific: Brand Tier */}
+                    {categoryData?.category === 'fashion' && (
+                      <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <Select
+                          label="Brand Tier"
+                          value={editedProduct.brand_tier || ""}
+                          onChange={(value) =>
+                            setEditedProduct({
+                              ...editedProduct,
+                              brand_tier: value || "",
+                            })
+                          }
+                          data={[
+                            { value: "ultra-luxury", label: "💎 Ultra-Luxury (Hermès, Chanel, Louis Vuitton)" },
+                            { value: "luxury", label: "✨ Luxury (Gucci, Prada, Burberry)" },
+                            { value: "premium designer", label: "🌟 Premium Designer (Ralph Lauren, Calvin Klein)" },
+                            { value: "contemporary", label: "Contemporary (Zara, H&M, Mango)" },
+                            { value: "athletic premium", label: "Athletic Premium (Lululemon, Arc'teryx)" },
+                            { value: "athletic mainstream", label: "Athletic (Nike, Adidas, Puma)" },
+                            { value: "streetwear", label: "Streetwear (Supreme, Off-White)" },
+                            { value: "fast fashion", label: "Fast Fashion (Shein, Forever 21)" },
+                            { value: "vintage", label: "🕰️ Vintage" },
+                            { value: "unbranded", label: "Unbranded" },
+                          ]}
+                          searchable
+                        />
+                      </Grid.Col>
+                    )}
+
+                    {/* Electronics-specific: Carrier Lock Status */}
+                    {categoryData?.category === 'electronics' && (
+                      <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <Select
+                          label="Carrier Lock Status"
+                          value={editedProduct.carrier_lock_status || ""}
+                          onChange={(value) =>
+                            setEditedProduct({
+                              ...editedProduct,
+                              carrier_lock_status: value || "",
+                            })
+                          }
+                          data={[
+                            { value: "unlocked", label: "Unlocked" },
+                            { value: "locked", label: "Carrier Locked" },
+                            { value: "unknown", label: "Unknown" },
+                          ]}
+                        />
+                      </Grid.Col>
+                    )}
+
                     {/* Dynamic Metadata Fields */}
                     {Object.entries(identificationData)
                       .filter(([key, value]) => {
@@ -1026,7 +1154,10 @@ const DetectPage = () => {
                         const skipFields = [
                           'identified_product', 'brand', 'model', 'color_variants',
                           'condition_rating', 'product_condition', 'estimated_year', 'short_description',
-                          'confidence_score', 'uuid', 'category', 'status'
+                          'confidence_score', 'uuid', 'category', 'status',
+                          'brand_tier', 'carrier_lock_status', // Now handled as explicit selects
+                          'clarity_feedback', 'possible_confusion', 'image_text_match', // Validation fields
+                          'missing_details', 'preliminary_authenticity', 'extraction_notes' // Internal fields
                         ];
                         
                         // Filter out empty values, null, undefined, and skip fields
@@ -1150,6 +1281,33 @@ const DetectPage = () => {
                       {verificationData.authentication_summary || verificationData.verification_summary}
                     </Text>
                   </Card>
+
+                  {/* Brand Tier Context (Fashion Only) */}
+                  {categoryData?.category === 'fashion' && identificationData?.brand_tier && (
+                    <Alert
+                      color={
+                        identificationData.brand_tier === 'ultra-luxury' || identificationData.brand_tier === 'luxury'
+                          ? 'yellow'
+                          : 'blue'
+                      }
+                      icon={
+                        identificationData.brand_tier === 'ultra-luxury' ? '💎' :
+                        identificationData.brand_tier === 'luxury' ? '✨' :
+                        identificationData.brand_tier === 'vintage' ? '🕰️' :
+                        identificationData.brand_tier === 'fast fashion' ? '👕' : '🌟'
+                      }
+                    >
+                      <Text fw={600} size="sm">
+                        {identificationData.brand_tier === 'ultra-luxury' && 'This is an ultra-luxury brand. Authentication is critical due to high counterfeit risk.'}
+                        {identificationData.brand_tier === 'luxury' && 'This is a luxury brand. Careful authentication recommended.'}
+                        {identificationData.brand_tier === 'premium designer' && 'This is a premium designer brand. Authentication adds value.'}
+                        {identificationData.brand_tier === 'fast fashion' && 'This is a fast fashion brand. Focus on condition over authenticity.'}
+                        {identificationData.brand_tier === 'vintage' && 'This is a vintage item. Age and condition are key factors.'}
+                        {identificationData.brand_tier === 'unbranded' && 'This is an unbranded item. Authentication not applicable.'}
+                        {!['ultra-luxury', 'luxury', 'premium designer', 'fast fashion', 'vintage', 'unbranded'].includes(identificationData.brand_tier) && 'Brand tier provides context for pricing and authentication.'}
+                      </Text>
+                    </Alert>
+                  )}
 
                   {/* Authentic Markers Found */}
                   {verificationData.authentic_markers_found && verificationData.authentic_markers_found.length > 0 && (
@@ -1556,8 +1714,77 @@ const DetectPage = () => {
                 </Card>
               )}
 
+              {/* Execution Time */}
+              {Object.keys(timeBreakdown).length > 0 && (
+                <Card withBorder>
+                  <Text fw={600} size="sm" mb="md">⏱️ Execution Time Breakdown</Text>
+                  <Stack gap="xs">
+                    {timeBreakdown.stage0 && (
+                      <Group justify="apart">
+                        <Text size="sm" c="dimmed">Category Detection:</Text>
+                        <Text size="sm">{timeBreakdown.stage0.toFixed(2)}s</Text>
+                      </Group>
+                    )}
+                    {timeBreakdown.stage1 && (
+                      <Group justify="apart">
+                        <Text size="sm" c="dimmed">Identification:</Text>
+                        <Text size="sm">{timeBreakdown.stage1.toFixed(2)}s</Text>
+                      </Group>
+                    )}
+                    {timeBreakdown.stage2 && (
+                      <Group justify="apart">
+                        <Text size="sm" c="dimmed">Verification:</Text>
+                        <Text size="sm">{timeBreakdown.stage2.toFixed(2)}s</Text>
+                      </Group>
+                    )}
+                    {timeBreakdown.stage3 && (
+                      <Group justify="apart">
+                        <Text size="sm" c="dimmed">Pricing:</Text>
+                        <Text size="sm">{timeBreakdown.stage3.toFixed(2)}s</Text>
+                      </Group>
+                    )}
+                    <Divider />
+                    <Group justify="apart">
+                      <Text fw={600}>Total:</Text>
+                      <Text fw={600}>
+                        {Object.values(timeBreakdown).reduce((a, b) => a + (b || 0), 0).toFixed(2)}s
+                      </Text>
+                    </Group>
+                  </Stack>
+                </Card>
+              )}
+
               {/* Navigation buttons */}
               <Group justify="center" gap="md">
+                <Button
+                  onClick={() => {
+                    const report = {
+                      ...identificationData,
+                      ...verificationData,
+                      ...pricingData,
+                      analysis_metadata: {
+                        timestamp: new Date().toISOString(),
+                        analyzer_version: "2.0.0",
+                        model_used: "gpt-5.1-2025-11-13",
+                        execution_times: timeBreakdown,
+                        product_category: categoryData?.category
+                      }
+                    };
+                    const blob = new Blob([JSON.stringify(report, null, 2)], {
+                      type: "application/json"
+                    });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${categoryData?.category}_analysis_${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  leftSection={<IconCloudUpload size={18} />}
+                  variant="filled"
+                >
+                  💾 Download JSON Report
+                </Button>
                 <Button onClick={resetFlow} variant="light">
                   Analyze Another Product
                 </Button>
@@ -1570,6 +1797,65 @@ const DetectPage = () => {
           )}
         </Box>
       </Flex>
+
+      {/* Retry Modal for Validation Errors */}
+      <Modal
+        opened={showRetryModal}
+        onClose={() => setShowRetryModal(false)}
+        title={<Text fw={700} size="lg">❌ Identification Issues</Text>}
+        centered
+        size="lg"
+      >
+        <Stack gap="md">
+          <Alert color="red" icon={<IconAlertCircle />}>
+            The product could not be identified clearly. Please review the issues below and upload better images.
+          </Alert>
+
+          {validationErrors.length > 0 && (
+            <div>
+              <Text fw={600} mb="sm">Issues Detected:</Text>
+              <Stack gap="xs">
+                {validationErrors.map((error, index) => (
+                  <Alert key={index} color="orange" icon={<IconX />}>
+                    <Text fw={600}>{error.type.replace(/_/g, ' ').toUpperCase()}</Text>
+                    <Text size="sm">{error.message}</Text>
+                  </Alert>
+                ))}
+              </Stack>
+            </div>
+          )}
+
+          {validationSuggestions.length > 0 && (
+            <div>
+              <Text fw={600} mb="sm">💡 Suggestions:</Text>
+              <Stack gap="xs">
+                {validationSuggestions.map((suggestion, index) => (
+                  <Group key={index} gap="xs">
+                    <IconCheck size={16} color="green" />
+                    <Text size="sm">{suggestion}</Text>
+                  </Group>
+                ))}
+              </Stack>
+            </div>
+          )}
+
+          <Group justify="flex-end" gap="md">
+            <Button onClick={() => setShowRetryModal(false)} variant="light">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowRetryModal(false);
+                resetFlow();
+              }}
+              color="green"
+              leftSection={<IconRefresh size={18} />}
+            >
+              Upload Better Images
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <canvas ref={canvasRef} style={{ display: "none" }} />
     </Container>

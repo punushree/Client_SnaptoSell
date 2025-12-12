@@ -61,11 +61,12 @@ Return ONLY valid JSON (no markdown, no extra text):
   "carrier_lock_status": "unlocked/locked/unknown",
   "condition_rating": "Excellent/Good/Fair/Poor based on visible condition",
   "condition_details": "Description of condition",
-  "possible_confusion": "Note if multiple products or unclear",
-  "clarity_feedback": "Image quality issues or contradictions with user text",
-  "image_text_match": true or false,
+  "product_condition": "new or used",
+  "possible_confusion": "Describe if multiple DIFFERENT products detected (e.g., 'iPhone and Samsung visible'), or 'None' if single product",
+  "clarity_feedback": "Describe image quality: 'Clear, well-lit images' OR note issues: 'Images are blurry', 'Logo not visible', 'Need better lighting'. Also note if user text contradicts images.",
+  "image_text_match": true or false (Does user description match what you see in images?),
   "preliminary_authenticity": "Likely Genuine/Uncertain/Possible Fake based on visual cues only",
-  "confidence_score": 0-100,
+  "confidence_score": 0-100 (Set <50 if images unclear, multiple products, or contradictions),
   "extraction_notes": "Any additional notes about extraction",
   "short_description": "Brief 2-3 sentence description",
   "estimated_year": "YYYY or null",
@@ -173,15 +174,16 @@ OUTPUT FORMAT (strict JSON, no markdown):
   "size": "M|32x32|size not visible in images",
   "material_composition": "100% cotton|cotton-polyester blend|appears to be denim",
   "distinctive_features": ["logo on chest", "red tab on pocket", "copper rivets"],
-  "possible_confusion": "could be mistaken for similar model|no significant confusion risk",
-  "clarity_feedback": "clear front view, back pocket tag not visible - suggest close-up of tags",
-  "confidence_score": 85,
+  "product_condition": "new or used",
+  "possible_confusion": "Could be mistaken for similar model | Multiple items visible | None if clear single item",
+  "clarity_feedback": "Describe image quality and any issues. Examples: 'Clear, well-lit images showing all angles' OR 'Brand logo not visible - need close-up' OR 'Multiple items in frame - unclear which is primary' OR 'Images are blurry'",
+  "image_text_match": true or false (Does user description match images?),
+  "confidence_score": 0-100 (Reduce if unclear images, missing details, or multiple items),
   "short_description": "Nike athletic sneakers in white colorway, good condition with minor creasing",
-  "condition_rating": "good pre-owned condition",
+  "condition_rating": "NWT|NWOT|like new|excellent pre-owned condition|very good pre-owned condition|good pre-owned condition|fair pre-owned condition|poor condition",
   "condition_details": "Minor creasing on toe box, slight yellowing on midsole, overall good shape",
-  "estimated_year": "recent (1-2 years)",
-  "image_text_match": true,
-  "missing_details": ["size tag", "care label"]
+  "estimated_year": "recent (1-2 years) or YYYY",
+  "missing_details": ["size tag", "care label"] (list any details not visible in images)
 }
 
 ANTI-FRAUD MEASURES:
@@ -223,8 +225,10 @@ Return ONLY valid JSON:
   "distinctive_features": "Notable features",
   "condition_rating": "New/Like New/Good/Fair/Poor",
   "condition_details": "Condition description",
-  "confidence_score": 0-100,
-  "clarity_feedback": "Image quality notes",
+  "product_condition": "new or used",
+  "possible_confusion": "Note if multiple products detected or None",
+  "clarity_feedback": "Image quality: 'Clear images' OR 'Blurry/dark images' OR 'Need better photos'",
+  "confidence_score": 0-100 (Set <50 if images unclear),
   "short_description": "Brief description",
   "estimated_year": "Year or null",
   "estimated_price": "$XXX-$XXX or null"
@@ -350,42 +354,70 @@ Authentication is critical for protecting buyers and maintaining marketplace int
 Now perform the authentication analysis using web search.`;
   }
 
-  // Electronics and other categories
-  return `You are a product authentication and verification expert with extensive knowledge of electronics specifications.
+  // Electronics Verification Flow (Specs-focused with web search)
+  return `You are ELECTRA, an electronics authentication and verification expert.
 
 CONTEXT:
-A product has been identified as: ${productName}
-Category: ${category}
+A product has been identified from images as:
 
 EXTRACTED DATA:
 ${JSON.stringify(stage1Data, null, 2)}
 
 YOUR TASK:
-Using your knowledge of electronics products, verify if the identified product specifications are plausible and check for common authenticity concerns.
+Use web search to verify this product's specifications and authenticity.
 
-VERIFICATION CHECKS:
-1. Does this product model actually exist?
-2. Do the claimed specifications match typical specs for this model?
-3. Are there any obvious red flags or inconsistencies?
-4. Do the specifications align with the claimed year/model?
+VERIFICATION STEPS:
+1. Search for official specifications for "${productName}"
+   - Manufacturer website
+   - Tech databases (GSMArena, NotebookCheck, etc.)
+   - Official press releases
 
-IMPORTANT:
-- Use your extensive knowledge of electronics products (phones, laptops, tablets)
-- Check if the combination of brand + model + specs is realistic
-- Flag any obvious mismatches (e.g., impossible RAM for that year, non-existent model)
-- If you recognize the product, verify against your knowledge
-- Be realistic about limitations - mark uncertain if you're not confident
+2. Compare extracted specs with official specs:
+   - Does the model variant exist?
+   - Are RAM/storage combinations valid?
+   - Is the color option real?
+   - Does the carrier lock status make sense?
+
+3. Check for fraud indicators:
+   - Search for common fakes of this model
+   - Look for known counterfeit patterns
+   - Verify model numbers against official lists
+
+4. Find official pricing and release information:
+   - Original MSRP
+   - Release year
+   - Regional variants
+
+WEB SEARCH STRATEGY:
+- Search: "${productName} official specifications"
+- Search: "${productName} model variants"
+- Search: "${productName} counterfeit detection"
+- Search: "${productName} release date price"
 
 OUTPUT FORMAT:
-Return ONLY valid JSON (no markdown, no extra text):
+Return ONLY valid JSON:
 
 {
-  "authenticity_status": "Verified Authentic" | "Likely Authentic" | "Uncertain" | "Suspicious" | "Likely Counterfeit",
+  "verification_searched": true,
+  "official_specs_found": true or false,
+  "verified_specs": {
+    "official_ram_options": ["4GB", "8GB"],
+    "official_storage_options": ["128GB", "256GB"],
+    "official_colors": ["Blue", "Black"],
+    "official_model_variants": ["A2890", "A2891"]
+  },
+  "specs_match": true or false,
+  "mismatches": ["List any mismatches between extracted and official specs"],
+  "official_price": "Original MSRP",
+  "estimated_year": "YYYY",
+  "authenticity_status": "Verified Genuine / Likely Genuine / Uncertain / Possible Fake / Likely Fake",
+  "authenticity_warnings": ["List any red flags or concerns"],
+  "verified_specs_match": "Detailed explanation of verification",
   "verification_confidence": 0-100,
-  "specs_match": true | false,
-  "authenticity_warnings": ["list any concerns or empty array"],
-  "verification_summary": "Brief 2-3 sentence summary explaining your assessment based on your product knowledge"
-}`;
+  "sources_checked": ["List of sources used for verification"]
+}
+
+CRITICAL: Use web search actively to find official information. Do not rely only on your training data.`;
 }
 
 // ═══════════════════════════════════════════════════════════

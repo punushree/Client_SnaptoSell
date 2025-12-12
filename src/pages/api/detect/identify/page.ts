@@ -96,8 +96,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         webSearch: isWebSearchEnabled(stageKey as any),
         reasoningEffort: getReasoningLevel(stageKey as any),
         verbosity: getVerbosityLevel(stageKey as any),
-        maxTokens: 600, // Optimized for speed
-        temperature: 0.1 // Lower for faster generation
+        maxTokens: 2000, // GPT-5 needs tokens for reasoning + output
+        temperature: 0.1
       });
 
       if (!response.success || !response.data) {
@@ -107,19 +107,35 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const identificationResult = response.data;
       const executionTime = tracker.stop();
 
-      // Validate response
+      // Import comprehensive validation
+      const { validateStage1Comprehensive, validateFashionStage1 } = await import('@/lib/server/utils/validators');
+      
+      // Run comprehensive validation
       const minConfidence = getMinConfidence(category as ProductCategory);
-      const validation = category === 'fashion' 
-        ? validateFashionStage1Response(identificationResult, minConfidence)
-        : validateStage1Response(identificationResult, minConfidence);
+      const validation = category === 'fashion'
+        ? validateFashionStage1(identificationResult, minConfidence)
+        : validateStage1Comprehensive(identificationResult, minConfidence);
 
+      // If validation fails, return error with suggestions
       if (!validation.valid) {
         console.error('Identification validation failed:', validation.errors);
-        // Continue anyway but log warnings
-        console.warn('Proceeding despite validation errors');
+        
+        return Response.json({
+          success: false,
+          error: 'Identification validation failed',
+          data: {
+            identification: identificationResult,
+            validation: {
+              valid: false,
+              errors: validation.errors,
+              suggestions: validation.suggestions || [],
+              confidence: validation.confidence || identificationResult.confidence_score || 0
+            }
+          }
+        }, { status: 400 });
       }
 
-      if (validation.warnings.length > 0) {
+      if (validation.warnings && validation.warnings.length > 0) {
         console.warn('Identification warnings:', validation.warnings);
       }
 

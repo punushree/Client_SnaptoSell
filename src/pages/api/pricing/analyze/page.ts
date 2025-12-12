@@ -104,9 +104,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       prompt,
       webSearch: true, // Enable web search for marketplace pricing
       reasoningEffort: 'low',
-      verbosity: 'low', // Reduced for faster response
-      maxTokens: 700, // Reduced for faster pricing
-      temperature: 0.1 // Lower for speed
+      verbosity: 'low',
+      maxTokens: 3000, // GPT-5 needs tokens for reasoning + web search results + output
+      temperature: 0.1
     });
 
     if (!response.success || !response.data) {
