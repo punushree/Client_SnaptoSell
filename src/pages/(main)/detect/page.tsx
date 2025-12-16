@@ -1046,7 +1046,10 @@ const DetectPage = () => {
                         }
                         data={[
                           { value: "new", label: "New" },
-                          { value: "used", label: "Used" },
+                          { value: "like new", label: "Like New" },
+                          { value: "good", label: "Good" },
+                          { value: "fair", label: "Fair" },
+                          { value: "poor", label: "Poor" },
                         ]}
                       />
                     </Grid.Col>
