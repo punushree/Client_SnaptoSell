@@ -29,7 +29,9 @@ export const REASONING_LEVELS = {
   fashion_stage3: "low",    // Fashion pricing
   
   // Other
-  other_stage1: "low" // Generic product details
+  other_stage1: "low",   // Generic product details (simple)
+  other_stage2: "medium", // Generic product verification
+  other_stage3: "medium"  // Generic product pricing
 } as const;
 
 export type ReasoningEffort = "low" | "medium" | "high";
@@ -46,7 +48,9 @@ export const VERBOSITY_LEVELS = {
   fashion_stage1: "low",
   fashion_stage2: "medium",
   fashion_stage3: "medium",
-  other_stage1: "low"
+  other_stage1: "low",
+  other_stage2: "medium",
+  other_stage3: "medium"
 } as const;
 
 export type VerbosityLevel = "low" | "medium" | "high";
@@ -63,7 +67,9 @@ export const ENABLE_WEB_SEARCH = {
   fashion_stage1: false,  // Fashion ID - pure vision
   fashion_stage2: true,   // Fashion authentication - needs brand info
   fashion_stage3: true,   // Fashion pricing - needs marketplace data
-  other_stage1: false     // Generic product - pure vision
+  other_stage1: false,    // Generic product - pure vision
+  other_stage2: true,     // Generic product verification - needs web search
+  other_stage3: true      // Generic product pricing - needs marketplace data
 } as const;
 
 // ============================================================================
@@ -128,14 +134,14 @@ export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 export const SUPPORTS_FULL_FLOW = {
   electronics: true, // Stage 1, 2, 3
   fashion: true,     // Stage 1, 2, 3
-  other: false       // Stage 1 only
+  other: true        // Stage 1, 2, 3 (NOW ENABLED)
 } as const;
 
 // Which categories have pricing enabled
 export const PRICING_ENABLED = {
   electronics: true,
   fashion: true,
-  other: false
+  other: true        // NOW ENABLED
 } as const;
 
 // ============================================================================

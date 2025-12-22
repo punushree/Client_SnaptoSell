@@ -28,6 +28,7 @@ import {
   Divider,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import jsPDF from "jspdf";
 import { Dropzone } from "@mantine/dropzone";
 import "@mantine/dropzone/styles.css";
 import {
@@ -104,29 +105,35 @@ const DetectPage = () => {
 
   // Stepper state
   const [active, setActive] = useState(0);
-  
+
   // Camera & images
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [facingMode, setFacingMode] = useState<"user" | "environment">(
+    "environment"
+  );
   const [isVideoReady, setIsVideoReady] = useState(false);
-  
+
   // Form data
   const [description, setDescription] = useState("");
-  
+
   // API responses
   const [uuid, setUuid] = useState<string | null>(null);
   const [categoryData, setCategoryData] = useState<CategoryData | null>(null);
-  const [identificationData, setIdentificationData] = useState<IdentificationData | null>(null);
-  const [verificationData, setVerificationData] = useState<VerificationData | null>(null);
-  
+  const [identificationData, setIdentificationData] =
+    useState<IdentificationData | null>(null);
+  const [verificationData, setVerificationData] =
+    useState<VerificationData | null>(null);
+
   // Loading & error states
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Editable product data
-  const [editedProduct, setEditedProduct] = useState<Partial<IdentificationData>>({});
-  
+  const [editedProduct, setEditedProduct] = useState<
+    Partial<IdentificationData>
+  >({});
+
   // Pricing data from eBay
   const [pricingData, setPricingData] = useState<any>(null);
 
@@ -142,12 +149,16 @@ const DetectPage = () => {
   }>({});
 
   // Validation errors and retry
-  const [validationErrors, setValidationErrors] = useState<Array<{
-    type: string;
-    message: string;
-    details?: any;
-  }>>([]);
-  const [validationSuggestions, setValidationSuggestions] = useState<string[]>([]);
+  const [validationErrors, setValidationErrors] = useState<
+    Array<{
+      type: string;
+      message: string;
+      details?: any;
+    }>
+  >([]);
+  const [validationSuggestions, setValidationSuggestions] = useState<string[]>(
+    []
+  );
   const [showRetryModal, setShowRetryModal] = useState(false);
 
   // Start camera
@@ -156,7 +167,8 @@ const DetectPage = () => {
       setIsLoading(true);
       if (stream) stream.getTracks().forEach((t) => t.stop());
 
-      const isMobileDevice = typeof window !== "undefined" && window.innerWidth < 768;
+      const isMobileDevice =
+        typeof window !== "undefined" && window.innerWidth < 768;
       const actualMode = isMobileDevice ? mode : "user";
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: actualMode } },
@@ -182,7 +194,7 @@ const DetectPage = () => {
   useEffect(() => {
     // Initialize history state on mount
     if (window.history.state?.step === undefined) {
-      window.history.replaceState({ step: 0 }, '', window.location.pathname);
+      window.history.replaceState({ step: 0 }, "", window.location.pathname);
     }
 
     // Handle browser back/forward buttons
@@ -192,14 +204,14 @@ const DetectPage = () => {
       }
     };
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   // Update history when step changes
   useEffect(() => {
     if (window.history.state?.step !== active) {
-      window.history.pushState({ step: active }, '', window.location.pathname);
+      window.history.pushState({ step: active }, "", window.location.pathname);
     }
   }, [active]);
 
@@ -322,7 +334,7 @@ const DetectPage = () => {
       const executionTime = (Date.now() - startTime) / 1000;
 
       // Track execution time
-      setTimeBreakdown(prev => ({ ...prev, stage0: executionTime }));
+      setTimeBreakdown((prev) => ({ ...prev, stage0: executionTime }));
 
       if (!response.ok) {
         throw new Error(result.error || "Category detection failed");
@@ -332,6 +344,7 @@ const DetectPage = () => {
         setUuid(result.data.uuid);
         setCategoryData(result.data.categoryData);
         setActive(1); // Move to step 2
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         throw new Error(result.error || "Category detection failed");
       }
@@ -371,7 +384,7 @@ const DetectPage = () => {
       const executionTime = (Date.now() - startTime) / 1000;
 
       // Track execution time
-      setTimeBreakdown(prev => ({ ...prev, stage1: executionTime }));
+      setTimeBreakdown((prev) => ({ ...prev, stage1: executionTime }));
 
       if (!response.ok) {
         throw new Error(result.error || "Identification failed");
@@ -379,7 +392,7 @@ const DetectPage = () => {
 
       if (result.success) {
         const identData = result.data.identification;
-        
+
         // Check if validation data is included
         if (result.data.validation && !result.data.validation.valid) {
           // Show validation errors
@@ -391,13 +404,10 @@ const DetectPage = () => {
 
         setIdentificationData(identData);
         setEditedProduct(identData);
-        
-        // For 'other' category, skip to completion (no verification/pricing needed)
-        if (categoryData.category === 'other') {
-          setActive(5); // Skip directly to completion
-        } else {
-          setActive(2); // Move to step 3 (review for electronics/fashion)
-        }
+
+        // All categories now go through the full flow
+        setActive(2); // Move to step 3 (review)
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         throw new Error(result.error || "Identification failed");
       }
@@ -434,7 +444,7 @@ const DetectPage = () => {
       const executionTime = (Date.now() - startTime) / 1000;
 
       // Track execution time
-      setTimeBreakdown(prev => ({ ...prev, stage2: executionTime }));
+      setTimeBreakdown((prev) => ({ ...prev, stage2: executionTime }));
 
       if (!response.ok) {
         throw new Error(result.error || "Verification failed");
@@ -442,8 +452,9 @@ const DetectPage = () => {
 
       if (result.success) {
         setVerificationData(result.data.verification);
-        window.history.pushState({ step: 3 }, '', window.location.pathname);
+        window.history.pushState({ step: 3 }, "", window.location.pathname);
         setActive(3); // Move to verification results step
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         throw new Error(result.error || "Verification failed");
       }
@@ -482,9 +493,14 @@ const DetectPage = () => {
       }
 
       if (result.success) {
-        // Move to pricing step
-        window.history.pushState({ step: 4 }, '', window.location.pathname);
+        // Move to pricing step for all categories
+        window.history.pushState(
+          { step: 4 },
+          "",
+          window.location.pathname
+        );
         setActive(4); // Move to pricing step
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         throw new Error(result.error || "Confirmation failed");
       }
@@ -497,8 +513,14 @@ const DetectPage = () => {
 
   // Step 4: Handle pricing completion
   const handlePricingComplete = () => {
-    window.history.pushState({ step: 5 }, '', window.location.pathname);
+    // All categories complete at step 5
+    window.history.pushState(
+      { step: 5 },
+      "",
+      window.location.pathname
+    );
     setActive(5); // Move to completion
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const getCategoryIcon = (category: string) => {
@@ -523,6 +545,7 @@ const DetectPage = () => {
     setEditedProduct({});
     setError(null);
     stopCamera();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -530,30 +553,6 @@ const DetectPage = () => {
       <Title order={1} mb="xs">
         Snap to Detect Product
       </Title>
-      
-      <Text c="dimmed" mb="sm">
-        Capture a photo of the product to detect it and find its price
-      </Text>
-
-      <Text mb="xs">
-        Capture/Upload a minimum 3 to 5 photos of the product.
-      </Text>
-
-      <Text mb="xs">
-        Capture/Upload a photos form both sides like front side, back side, left side, right side of the product. Click here for priview sample images
-        <Button
-          variant="light"
-          ml="xs"
-          size="xs"
-          onClick={() => setShowSampleImages(true)}
-        >
-          View Sample Images
-        </Button>
-      </Text>
-
-      <Text mb="xl">
-        After capture/upload a photos and add product details.
-      </Text>
 
       {/* Sample Images Modal */}
       <Modal
@@ -582,1221 +581,1721 @@ const DetectPage = () => {
         </Alert>
       )}
 
-      <Flex gap="md" align="flex-start" direction={{ base: 'row', md: 'column' }}>
-        {/* Stepper - Vertical on mobile/tablet, Horizontal on desktop */}
-        <Box style={{ 
-          flexShrink: 0, 
-          width: isMobile ? 'auto' : '100%',
-          overflowX: isMobile ? 'visible' : 'auto'
-        }}>
-          <Stepper 
-            active={active} 
+      <Flex
+        gap="md"
+        align="flex-start"
+        direction={isMobile ? "row" : "column"}
+        style={isMobile ? { position: 'relative' } : undefined}
+      >
+        {/* Stepper - Compact and Responsive */}
+        <Box
+          style={{
+            width: isMobile ? "auto" : "100%",
+            overflowX: isMobile ? "visible" : "auto",
+            order: isMobile ? 1 : 1,
+            position: isMobile ? "sticky" : "relative",
+            top: isMobile ? "1rem" : "auto",
+            alignSelf: isMobile ? "flex-start" : "auto",
+          }}
+        >
+          <Stepper
+            active={active}
             onStepClick={() => {}} // Disable direct click navigation
-            mb={isMobile ? 0 : "xl"}
+            mb="md"
             orientation={isMobile ? "vertical" : "horizontal"}
-            size={isMobile ? "xs" : "sm"}
-            styles={isMobile ? {
-              stepBody: {
-                display: 'none',
+            size="xs"
+            styles={{
+              root: {
+                padding: isMobile ? "0" : "0.5rem 0",
+              },
+              steps: {
+                gap: "0.5rem",
               },
               step: {
-                padding: '8px 0',
-                minHeight: '36px',
+                padding: isMobile ? "0.5rem 0" : "0",
+                minWidth: isMobile ? "auto" : "70px",
+                gap: "0.25rem",
+              },
+              stepIcon: {
+                width: "32px",
+                height: "32px",
+                minWidth: "32px",
+                minHeight: "32px",
+                fontSize: "0.875rem",
               },
               stepLabel: {
-                display: 'none',
+                fontSize: isMobile ? "0.85rem" : "0.75rem",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+                marginTop: isMobile ? "0" : "0.25rem",
+                marginLeft: isMobile ? "0.5rem" : "0",
+                display: isMobile ? "none" : "block",
               },
               stepDescription: {
-                display: 'none',
+                display: "none",
               },
-              root: {
-                // Adjust height based on category (fewer steps for 'other')
-                minHeight: categoryData?.category === 'other' ? '180px' : '250px',
-              }
-            } : undefined}
+              separator: {
+                marginLeft: isMobile ? "0" : "0.5rem",
+                marginRight: isMobile ? "0" : "0.5rem",
+                marginTop: isMobile ? "0.25rem" : "0",
+                marginBottom: isMobile ? "0.25rem" : "0",
+              },
+            }}
           >
             <Stepper.Step
               label="Upload"
-              description="Capture or upload images"
-              icon={<IconCloudUpload size={18} />}
+              icon={<IconCloudUpload size={20} />}
             />
             <Stepper.Step
               label="Category"
-              description="Product category detected"
-              icon={getCategoryIcon(categoryData?.category || "")}
+              icon={<IconPackage size={20} />}
             />
             <Stepper.Step
               label="Identify"
-              description="Review product details"
-              icon={<IconSearch size={18} />}
+              icon={<IconSearch size={20} />}
             />
-            {/* Conditionally show Verify and Pricing steps (not for 'other' category) */}
-            {categoryData?.category && categoryData.category !== 'other' && (
-              <>
-                <Stepper.Step
-                  label="Verify"
-                  description={categoryData?.category === 'fashion' ? 'Authentication check' : 'Authenticity check'}
-                  icon={<IconShieldCheck size={18} />}
-                />
-                <Stepper.Step
-                  label="Pricing"
-                  description="Market price analysis"
-                  icon={<IconCurrencyDollar size={18} />}
-                />
-              </>
-            )}
-            {/* For 'other' category - show completion step instead */}
-            {categoryData?.category === 'other' && (
-              <Stepper.Step
-                label="Complete"
-                description="Analysis complete"
-                icon={<IconCircleCheck size={18} />}
-              />
-            )}
+            <Stepper.Step
+              label="Verify"
+              icon={<IconShieldCheck size={20} />}
+            />
+            <Stepper.Step
+              label="Pricing"
+              icon={<IconCurrencyDollar size={20} />}
+            />
+            <Stepper.Step
+              label="Complete"
+              icon={<IconCircleCheck size={20} />}
+            />
           </Stepper>
         </Box>
 
         {/* Main Content Area */}
-        <Box style={{ flex: 1, width: '100%' }}>
+        <Box style={{ 
+          flex: 1, 
+          width: isMobile ? "100%" : "100%",
+          order: isMobile ? 2 : 2,
+        }}>
           {/* Step 0: Upload */}
           {active === 0 && (
-          <Paper shadow="sm" p="md" withBorder mt="md">
-            <Stack gap="md">
-              <Text fw={500}>Step 1: Upload Product Images</Text>
-              <Text size="sm" c="dimmed">
-                Upload or capture 1-5 clear images of your product from different angles
-              </Text>
+            <Paper shadow="sm" p="md" withBorder mt="md">
+              <Stack gap="md">
+                <Text fw={500}>Step 1: Upload Product Images</Text>
+                <Text size="sm" c="dimmed">
+                  Upload or capture 1-5 clear images of your product from
+                  different angles
+                </Text>
 
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                multiple
-                style={{ display: "none" }}
-                onChange={handleFileUpload}
-              />
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  style={{ display: "none" }}
+                  onChange={handleFileUpload}
+                />
 
-              <Group align="flex-start" gap="md" wrap="wrap">
-                {/* Left side - Camera and controls */}
-                <Stack
-                  gap="md"
-                  style={{
-                    flex: "1 1 calc(50% - 0.5rem)",
-                    minWidth: "min(100%, 400px)",
-                  }}
-                >
-                  <Box
+                <Group align="flex-start" gap="md" wrap="wrap">
+                  {/* Left side - Camera and controls */}
+                  <Stack
+                    gap="md"
                     style={{
-                      position: "relative",
-                      width: "100%",
-                      height: "clamp(300px, 50vw, 500px)",
-                      background: stream ? "#000" : "#f1f3f5",
-                      borderRadius: 8,
-                      overflow: "hidden",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      flex: isMobile ? "1 1 100%" : "1 1 calc(50% - 0.5rem)",
+                      minWidth: isMobile ? "100%" : "min(100%, 400px)",
                     }}
                   >
-                    {!stream ? (
-                      <Stack align="center" gap="md">
-                        <IconCamera size={64} color="#adb5bd" />
-                        <Text size="sm" c="dimmed">
-                          Camera preview will appear here
-                        </Text>
+                    <Box
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        height: "clamp(300px, 50vw, 500px)",
+                        background: stream ? "#000" : "#f1f3f5",
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {!stream ? (
+                        <Stack align="center" gap="md">
+                          <IconCamera size={64} color="#adb5bd" />
+                          <Text size="sm" c="dimmed">
+                            Camera preview will appear here
+                          </Text>
+                          <Button
+                            leftSection={<IconCamera />}
+                            onClick={() => startCamera()}
+                            loading={isLoading}
+                          >
+                            Start Camera
+                          </Button>
+                        </Stack>
+                      ) : (
+                        <>
+                          {!isVideoReady && (
+                            <Text c="white">Loading camera...</Text>
+                          )}
+                          <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              display: isVideoReady ? "block" : "none",
+                              transform:
+                                facingMode === "user" ? "scaleX(-1)" : "none",
+                            }}
+                          />
+                        </>
+                      )}
+                    </Box>
+
+                    {stream && (
+                      <Group justify="center" wrap="wrap" w="100%">
                         <Button
                           leftSection={<IconCamera />}
-                          onClick={() => startCamera()}
-                          loading={isLoading}
+                          onClick={captureImage}
+                          disabled={!isVideoReady || capturedImages.length >= 5}
                         >
-                          Start Camera
+                          Capture Image
                         </Button>
-                      </Stack>
-                    ) : (
-                      <>
-                        {!isVideoReady && (
-                          <Text c="white">Loading camera...</Text>
-                        )}
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          muted
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            display: isVideoReady ? "block" : "none",
-                            transform:
-                              facingMode === "user" ? "scaleX(-1)" : "none",
-                          }}
-                        />
-                      </>
-                    )}
-                  </Box>
-
-                  {stream && (
-                    <Group justify="center" wrap="wrap" w="100%">
-                      <Button
-                        leftSection={<IconCamera />}
-                        onClick={captureImage}
-                        disabled={!isVideoReady || capturedImages.length >= 5}
-                      >
-                        Capture Image
-                      </Button>
-                      <Button
-                        variant="outline"
-                        color="red"
-                        onClick={stopCamera}
-                      >
-                        Stop Camera
-                      </Button>
-                    </Group>
-                  )}
-                </Stack>
-
-                {/* Right side - Upload options and other content */}
-                <Stack
-                  gap="md"
-                  style={{
-                    flex: "1 1 calc(50% - 0.5rem)",
-                    minWidth: "min(100%, 400px)",
-                  }}
-                >
-                  {/* Captured Images Preview - Show in right column */}
-                  {capturedImages.length > 0 && (
-                    <Box style={{ width: "100%" }}>
-                      <Group justify="space-between" mb="sm">
-                        <Text fw={600}>
-                          Captured Images ({capturedImages.length}/5)
-                        </Text>
                         <Button
-                          variant="light"
+                          variant="outline"
                           color="red"
-                          size="xs"
-                          leftSection={<IconTrash size={14} />}
-                          onClick={() => setCapturedImages([])}
+                          onClick={stopCamera}
                         >
-                          Reset All
+                          Stop Camera
                         </Button>
                       </Group>
-                      <Grid gutter="sm">
-                        {capturedImages.map((img, index) => (
-                          <Grid.Col key={index} span={{ base: 6, sm: 6 }}>
-                            <Card
-                              p={0}
-                              radius="md"
-                              withBorder
-                              style={{
-                                position: "relative",
-                                overflow: "hidden",
-                              }}
-                            >
-                              <Badge
-                                color="blue"
-                                size="xs"
-                                radius="sm"
-                                style={{
-                                  position: "absolute",
-                                  top: 6,
-                                  left: 6,
-                                  zIndex: 10,
-                                }}
-                              >
-                                {index + 1}
-                              </Badge>
-                              <Image
-                                src={img}
-                                fit="cover"
-                                h={{ base: 120, sm: 150, md: 180 }}
-                                w="100%"
-                                style={{
-                                  display: "block",
-                                }}
-                              />
-                              <ActionIcon
-                                color="red"
-                                variant="filled"
-                                radius="xl"
-                                p={3}
-                                style={{
-                                  position: "absolute",
-                                  top: 6,
-                                  right: 6,
-                                }}
-                                onClick={() => deleteImage(index)}
-                              >
-                                <IconTrash size={16} />
-                              </ActionIcon>
-                            </Card>
-                          </Grid.Col>
-                        ))}
-                      </Grid>
-                    </Box>
-                  )}
+                    )}
+                  </Stack>
 
-                  {/* Drag and Drop Zone */}
-                  <Divider
-                    label="OR upload without camera"
-                    labelPosition="center"
-                  />
-
-                  <Dropzone
-                    onDrop={(files) => {
-                      const newImages = files.map((file) =>
-                        URL.createObjectURL(file)
-                      );
-                      setCapturedImages((prev) => {
-                        const remainingSlots = 5 - prev.length;
-                        return [...prev, ...newImages.slice(0, remainingSlots)];
-                      });
+                  {/* Right side - Upload options and other content */}
+                  <Stack
+                    gap="md"
+                    style={{
+                      flex: isMobile ? "1 1 100%" : "1 1 calc(50% - 0.5rem)",
+                      minWidth: isMobile ? "100%" : "min(100%, 400px)",
                     }}
-                    onReject={() => {
-                      setError("Please upload valid image files (max 5MB each)");
-                    }}
-                    maxSize={5 * 1024 ** 2}
-                    accept={{ "image/*": [".jpeg", ".jpg", ".png", ".webp"] }}
-                    multiple
-                    disabled={capturedImages.length >= 5}
                   >
-                    <Group
-                      justify="center"
-                      gap="sm"
-                      mih={100}
-                      style={{ pointerEvents: "none" }}
+                    {/* Captured Images Preview - Show in right column */}
+                    {capturedImages.length > 0 && (
+                      <Box style={{ width: "100%" }}>
+                        <Group justify="space-between" mb="sm">
+                          <Text fw={600}>
+                            Captured Images ({capturedImages.length}/5)
+                          </Text>
+                          <Button
+                            variant="light"
+                            color="red"
+                            size="xs"
+                            leftSection={<IconTrash size={14} />}
+                            onClick={() => setCapturedImages([])}
+                          >
+                            Reset All
+                          </Button>
+                        </Group>
+                        <Grid gutter="sm">
+                          {capturedImages.map((img, index) => (
+                            <Grid.Col key={index} span={{ base: 6, sm: 6 }}>
+                              <Card
+                                p={0}
+                                radius="md"
+                                withBorder
+                                style={{
+                                  position: "relative",
+                                  overflow: "hidden",
+                                }}
+                              >
+                                <Badge
+                                  color="blue"
+                                  size="xs"
+                                  radius="sm"
+                                  style={{
+                                    position: "absolute",
+                                    top: 6,
+                                    left: 6,
+                                    zIndex: 10,
+                                  }}
+                                >
+                                  {index + 1}
+                                </Badge>
+                                <Image
+                                  src={img}
+                                  fit="cover"
+                                  h={{ base: 120, sm: 150, md: 180 }}
+                                  w="100%"
+                                  style={{
+                                    display: "block",
+                                  }}
+                                />
+                                <ActionIcon
+                                  color="red"
+                                  variant="filled"
+                                  radius="xl"
+                                  p={3}
+                                  style={{
+                                    position: "absolute",
+                                    top: 6,
+                                    right: 6,
+                                  }}
+                                  onClick={() => deleteImage(index)}
+                                >
+                                  <IconTrash size={16} />
+                                </ActionIcon>
+                              </Card>
+                            </Grid.Col>
+                          ))}
+                        </Grid>
+                      </Box>
+                    )}
+
+                    {/* Drag and Drop Zone */}
+                    <Divider
+                      label="OR upload without camera"
+                      labelPosition="center"
+                    />
+
+                    <Dropzone
+                      onDrop={(files) => {
+                        const newImages = files.map((file) =>
+                          URL.createObjectURL(file)
+                        );
+                        setCapturedImages((prev) => {
+                          const remainingSlots = 5 - prev.length;
+                          return [
+                            ...prev,
+                            ...newImages.slice(0, remainingSlots),
+                          ];
+                        });
+                      }}
+                      onReject={() => {
+                        setError(
+                          "Please upload valid image files (max 5MB each)"
+                        );
+                      }}
+                      maxSize={5 * 1024 ** 2}
+                      accept={{ "image/*": [".jpeg", ".jpg", ".png", ".webp"] }}
+                      multiple
+                      disabled={capturedImages.length >= 5}
                     >
-                      <Dropzone.Accept>
-                        <IconCloudUpload
-                          size={32}
-                          stroke={1.5}
-                          color="var(--mantine-color-blue-6)"
-                        />
-                      </Dropzone.Accept>
-                      <Dropzone.Reject>
-                        <IconX
-                          size={32}
-                          stroke={1.5}
-                          color="var(--mantine-color-red-6)"
-                        />
-                      </Dropzone.Reject>
-                      <Dropzone.Idle>
-                        <IconCloudUpload
-                          size={32}
-                          stroke={1.5}
-                          color="var(--mantine-color-gray-4)"
-                        />
-                      </Dropzone.Idle>
+                      <Group
+                        justify="center"
+                        gap="sm"
+                        mih={100}
+                        style={{ pointerEvents: "none" }}
+                      >
+                        <Dropzone.Accept>
+                          <IconCloudUpload
+                            size={32}
+                            stroke={1.5}
+                            color="var(--mantine-color-blue-6)"
+                          />
+                        </Dropzone.Accept>
+                        <Dropzone.Reject>
+                          <IconX
+                            size={32}
+                            stroke={1.5}
+                            color="var(--mantine-color-red-6)"
+                          />
+                        </Dropzone.Reject>
+                        <Dropzone.Idle>
+                          <IconCloudUpload
+                            size={32}
+                            stroke={1.5}
+                            color="var(--mantine-color-gray-4)"
+                          />
+                        </Dropzone.Idle>
 
-                      <div>
-                        <Text size="sm" inline fw={500}>
-                          Drag images here or click to select
-                        </Text>
-                        <Text size="xs" c="dimmed" inline>
-                          {" "}
-                          (max 5MB each)
-                        </Text>
-                      </div>
-                    </Group>
-                  </Dropzone>
-                </Stack>
-              </Group>
+                        <div>
+                          <Text size="sm" inline fw={500}>
+                            Drag images here or click to select
+                          </Text>
+                          <Text size="xs" c="dimmed" inline>
+                            {" "}
+                            (max 5MB each)
+                          </Text>
+                        </div>
+                      </Group>
+                    </Dropzone>
+                  </Stack>
+                </Group>
 
-              <Textarea
-                label="Product Description (Optional)"
-                placeholder="e.g., iPhone 14 Pro 256GB Space Black"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-              />
+                <Textarea
+                  label="Product Description (Optional)"
+                  placeholder="e.g., iPhone 14 Pro 256GB Space Black"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                />
 
-              <Group justify="flex-end">
-                <Button
-                  rightSection={<IconArrowRight />}
-                  onClick={handleCategoryDetection}
-                  loading={isLoading}
-                  disabled={capturedImages.length === 0}
-                >
-                  Detect Category
-                </Button>
-              </Group>
-            </Stack>
-          </Paper>
+                <Group justify="flex-end">
+                  <Button
+                    rightSection={<IconArrowRight />}
+                    onClick={handleCategoryDetection}
+                    loading={isLoading}
+                    disabled={capturedImages.length === 0}
+                  >
+                    Detect Category
+                  </Button>
+                </Group>
+              </Stack>
+            </Paper>
           )}
 
           {/* Step 1: Category */}
           {active === 1 && (
-          <Paper shadow="sm" p="md" withBorder mt="md">
-            <Stack gap="md">
-              <Text fw={500}>Step 2: Category Detection Result</Text>
+            <Paper shadow="sm" p="md" withBorder mt="md">
+              <Stack gap="md">
+                <Text fw={500}>Step 2: Category Detection Result</Text>
 
-              {categoryData && (
-                <Card withBorder>
-                  <Group justify="apart" mb="md">
-                    <Group>
-                      {getCategoryIcon(categoryData.category)}
-                      <Text fw={600} size="lg">
-                        {categoryData.category.charAt(0).toUpperCase() +
-                          categoryData.category.slice(1)}
-                      </Text>
+                {categoryData && (
+                  <Card withBorder>
+                    <Group justify="apart" mb="md">
+                      <Group>
+                        {getCategoryIcon(categoryData.category)}
+                        <Text fw={600} size="lg">
+                          {categoryData.category.charAt(0).toUpperCase() +
+                            categoryData.category.slice(1)}
+                        </Text>
+                      </Group>
+                      <Badge color="green">
+                        {categoryData.confidence_score}% confident
+                      </Badge>
                     </Group>
-                    <Badge color="green">{categoryData.confidence_score}% confident</Badge>
-                  </Group>
-                  <Text size="sm" c="dimmed" mb="xs">
-                    <strong>Detected as:</strong> {categoryData.detected_product_type}
-                  </Text>
-                  <Text size="sm" c="dimmed">
-                    <strong>Reasoning:</strong> {categoryData.reasoning}
-                  </Text>
-                </Card>
-              )}
+                    <Text size="sm" c="dimmed" mb="xs">
+                      <strong>Detected as:</strong>{" "}
+                      {categoryData.detected_product_type}
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                      <strong>Reasoning:</strong> {categoryData.reasoning}
+                    </Text>
+                  </Card>
+                )}
 
-              <Group justify="space-between">
-                <Button
-                  leftSection={<IconArrowLeft />}
-                  variant="light"
-                  onClick={() => setActive(0)}
-                >
-                  Back
-                </Button>
-                <Button
-                  rightSection={<IconArrowRight />}
-                  onClick={handleIdentification}
-                  loading={isLoading}
-                >
-                  Identify Product
-                </Button>
-              </Group>
-            </Stack>
-          </Paper>
+                <Group justify="space-between">
+                  <Button
+                    leftSection={<IconArrowLeft />}
+                    variant="light"
+                    onClick={() => setActive(0)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    rightSection={<IconArrowRight />}
+                    onClick={handleIdentification}
+                    loading={isLoading}
+                  >
+                    Identify Product
+                  </Button>
+                </Group>
+              </Stack>
+            </Paper>
           )}
 
           {/* Step 2: Identify */}
           {active === 2 && (
-          <Paper shadow="sm" p="md" withBorder mt="md">
-            <Stack gap="md">
-              <Text fw={500}>Step 3: Review & Edit Product Details</Text>
+            <Paper shadow="sm" p="md" withBorder mt="md">
+              <Stack gap="md">
+                <Text fw={500}>Step 3: Review & Edit Product Details</Text>
 
-              {identificationData && (
-                <Card withBorder>
-                  <Group justify="apart" mb="md">
-                    <Text fw={600} size="lg">
-                      {identificationData.identified_product}
-                    </Text>
-                    <Badge color="blue">
-                      {identificationData.confidence_score}% confident
-                    </Badge>
-                  </Group>
+                {identificationData && (
+                  <Card withBorder>
+                    <Group justify="apart" mb="md">
+                      <Text fw={600} size="lg">
+                        {identificationData.identified_product}
+                      </Text>
+                      <Badge color="blue">
+                        {identificationData.confidence_score}% confident
+                      </Badge>
+                    </Group>
 
-                  <Grid>
-                    {/* Core Fields */}
-                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                      <TextInput
-                        label="Product Name"
-                        value={editedProduct.identified_product || ""}
-                        onChange={(e) =>
-                          setEditedProduct({
-                            ...editedProduct,
-                            identified_product: e.target.value,
-                          })
-                        }
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                      <TextInput
-                        label="Brand"
-                        value={editedProduct.brand || ""}
-                        onChange={(e) =>
-                          setEditedProduct({ ...editedProduct, brand: e.target.value })
-                        }
-                      />
-                    </Grid.Col>
-                    
-                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                      <TextInput
-                        label="Model"
-                        value={editedProduct.model || ""}
-                        onChange={(e) =>
-                          setEditedProduct({ ...editedProduct, model: e.target.value })
-                        }
-                      />
-                    </Grid.Col>
-                    
-                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                      <TextInput
-                        label="Color"
-                        value={editedProduct.color_variants || ""}
-                        onChange={(e) =>
-                          setEditedProduct({
-                            ...editedProduct,
-                            color_variants: e.target.value,
-                          })
-                        }
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                      <Select
-                        label="Product Condition"
-                        placeholder="Select condition"
-                        value={editedProduct.product_condition || ""}
-                        onChange={(value) =>
-                          setEditedProduct({
-                            ...editedProduct,
-                            product_condition: value || "",
-                          })
-                        }
-                        data={[
-                          { value: "new", label: "New" },
-                          { value: "like new", label: "Like New" },
-                          { value: "good", label: "Good" },
-                          { value: "fair", label: "Fair" },
-                          { value: "poor", label: "Poor" },
-                        ]}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                      <Select
-                        label="Condition Rating"
-                        value={editedProduct.condition_rating || ""}
-                        onChange={(value) =>
-                          setEditedProduct({
-                            ...editedProduct,
-                            condition_rating: value || "",
-                          })
-                        }
-                        data={
-                          categoryData?.category === 'fashion'
-                            ? [
-                                { value: "NWT", label: "NWT (New With Tags)" },
-                                { value: "NWOT", label: "NWOT (New Without Tags)" },
-                                { value: "like new", label: "Like New" },
-                                { value: "excellent pre-owned condition", label: "Excellent Pre-Owned" },
-                                { value: "very good pre-owned condition", label: "Very Good Pre-Owned" },
-                                { value: "good pre-owned condition", label: "Good Pre-Owned" },
-                                { value: "fair pre-owned condition", label: "Fair Pre-Owned" },
-                                { value: "poor condition", label: "Poor Condition" },
-                              ]
-                            : [
-                                { value: "Excellent", label: "Excellent" },
-                                { value: "Good", label: "Good" },
-                                { value: "Fair", label: "Fair" },
-                                { value: "Poor", label: "Poor" },
-                              ]
-                        }
-                        searchable
-                      />
-                    </Grid.Col>
-                    
-                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                      <TextInput
-                        label="Estimated Year"
-                        placeholder="e.g., 2023"
-                        value={editedProduct.estimated_year || ""}
-                        onChange={(e) =>
-                          setEditedProduct({
-                            ...editedProduct,
-                            estimated_year: e.target.value,
-                          })
-                        }
-                      />
-                    </Grid.Col>
+                    <Grid>
+                      {/* Core Fields */}
+                      <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <TextInput
+                          label="Product Name"
+                          value={editedProduct.identified_product || ""}
+                          onChange={(e) =>
+                            setEditedProduct({
+                              ...editedProduct,
+                              identified_product: e.target.value,
+                            })
+                          }
+                        />
+                      </Grid.Col>
+                      <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <TextInput
+                          label="Brand"
+                          value={editedProduct.brand || ""}
+                          onChange={(e) =>
+                            setEditedProduct({
+                              ...editedProduct,
+                              brand: e.target.value,
+                            })
+                          }
+                        />
+                      </Grid.Col>
 
-                    {/* Fashion-specific: Brand Tier */}
-                    {categoryData?.category === 'fashion' && (
+                      <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <TextInput
+                          label="Model"
+                          value={editedProduct.model || ""}
+                          onChange={(e) =>
+                            setEditedProduct({
+                              ...editedProduct,
+                              model: e.target.value,
+                            })
+                          }
+                        />
+                      </Grid.Col>
+
+                      <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <TextInput
+                          label="Color"
+                          value={editedProduct.color_variants || ""}
+                          onChange={(e) =>
+                            setEditedProduct({
+                              ...editedProduct,
+                              color_variants: e.target.value,
+                            })
+                          }
+                        />
+                      </Grid.Col>
                       <Grid.Col span={{ base: 12, sm: 6 }}>
                         <Select
-                          label="Brand Tier"
-                          value={editedProduct.brand_tier || ""}
+                          label="Product Condition"
+                          placeholder="Select condition"
+                          value={editedProduct.product_condition || ""}
                           onChange={(value) =>
                             setEditedProduct({
                               ...editedProduct,
-                              brand_tier: value || "",
+                              product_condition: value || "",
                             })
                           }
                           data={[
-                            { value: "ultra-luxury", label: "💎 Ultra-Luxury (Hermès, Chanel, Louis Vuitton)" },
-                            { value: "luxury", label: "✨ Luxury (Gucci, Prada, Burberry)" },
-                            { value: "premium designer", label: "🌟 Premium Designer (Ralph Lauren, Calvin Klein)" },
-                            { value: "contemporary", label: "Contemporary (Zara, H&M, Mango)" },
-                            { value: "athletic premium", label: "Athletic Premium (Lululemon, Arc'teryx)" },
-                            { value: "athletic mainstream", label: "Athletic (Nike, Adidas, Puma)" },
-                            { value: "streetwear", label: "Streetwear (Supreme, Off-White)" },
-                            { value: "fast fashion", label: "Fast Fashion (Shein, Forever 21)" },
-                            { value: "vintage", label: "🕰️ Vintage" },
-                            { value: "unbranded", label: "Unbranded" },
+                            { value: "new", label: "New" },
+                            { value: "like new", label: "Like New" },
+                            { value: "good", label: "Good" },
+                            { value: "fair", label: "Fair" },
+                            { value: "poor", label: "Poor" },
                           ]}
+                        />
+                      </Grid.Col>
+                      <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <Select
+                          label="Condition Rating"
+                          value={editedProduct.condition_rating || ""}
+                          onChange={(value) =>
+                            setEditedProduct({
+                              ...editedProduct,
+                              condition_rating: value || "",
+                            })
+                          }
+                          data={
+                            categoryData?.category === "fashion"
+                              ? [
+                                  {
+                                    value: "NWT",
+                                    label: "NWT (New With Tags)",
+                                  },
+                                  {
+                                    value: "NWOT",
+                                    label: "NWOT (New Without Tags)",
+                                  },
+                                  { value: "like new", label: "Like New" },
+                                  {
+                                    value: "excellent pre-owned condition",
+                                    label: "Excellent Pre-Owned",
+                                  },
+                                  {
+                                    value: "very good pre-owned condition",
+                                    label: "Very Good Pre-Owned",
+                                  },
+                                  {
+                                    value: "good pre-owned condition",
+                                    label: "Good Pre-Owned",
+                                  },
+                                  {
+                                    value: "fair pre-owned condition",
+                                    label: "Fair Pre-Owned",
+                                  },
+                                  {
+                                    value: "poor condition",
+                                    label: "Poor Condition",
+                                  },
+                                ]
+                              : [
+                                  { value: "Excellent", label: "Excellent" },
+                                  { value: "Good", label: "Good" },
+                                  { value: "Fair", label: "Fair" },
+                                  { value: "Poor", label: "Poor" },
+                                ]
+                          }
                           searchable
                         />
                       </Grid.Col>
-                    )}
 
-                    {/* Electronics-specific: Carrier Lock Status */}
-                    {categoryData?.category === 'electronics' && (
                       <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <Select
-                          label="Carrier Lock Status"
-                          value={editedProduct.carrier_lock_status || ""}
-                          onChange={(value) =>
+                        <TextInput
+                          label="Estimated Year"
+                          placeholder="e.g., 2023"
+                          value={editedProduct.estimated_year || ""}
+                          onChange={(e) =>
                             setEditedProduct({
                               ...editedProduct,
-                              carrier_lock_status: value || "",
+                              estimated_year: e.target.value,
                             })
                           }
-                          data={[
-                            { value: "unlocked", label: "Unlocked" },
-                            { value: "locked", label: "Carrier Locked" },
-                            { value: "unknown", label: "Unknown" },
-                          ]}
                         />
                       </Grid.Col>
-                    )}
 
-                    {/* Dynamic Metadata Fields */}
-                    {Object.entries(identificationData)
-                      .filter(([key, value]) => {
-                        // Skip core fields and internal fields
-                        const skipFields = [
-                          'identified_product', 'brand', 'model', 'color_variants',
-                          'condition_rating', 'product_condition', 'estimated_year', 'short_description',
-                          'confidence_score', 'uuid', 'category', 'status',
-                          'brand_tier', 'carrier_lock_status', // Now handled as explicit selects
-                          'clarity_feedback', 'possible_confusion', 'image_text_match', // Validation fields
-                          'missing_details', 'preliminary_authenticity', 'extraction_notes' // Internal fields
-                        ];
-                        
-                        // Filter out empty values, null, undefined, and skip fields
-                        return !skipFields.includes(key) && 
-                               value !== null && 
-                               value !== undefined && 
-                               value !== '' &&
-                               String(value).trim() !== '';
-                      })
-                      .map(([key, value]) => {
-                        // Format field label (e.g., "material_composition" -> "Material Composition")
-                        const label = key
-                          .split('_')
-                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                          .join(' ');
+                      {/* Fashion-specific: Brand Tier */}
+                      {categoryData?.category === "fashion" && (
+                        <Grid.Col span={{ base: 12, sm: 6 }}>
+                          <Select
+                            label="Brand Tier"
+                            value={editedProduct.brand_tier || ""}
+                            onChange={(value) =>
+                              setEditedProduct({
+                                ...editedProduct,
+                                brand_tier: value || "",
+                              })
+                            }
+                            data={[
+                              {
+                                value: "ultra-luxury",
+                                label:
+                                  "💎 Ultra-Luxury (Hermès, Chanel, Louis Vuitton)",
+                              },
+                              {
+                                value: "luxury",
+                                label: "✨ Luxury (Gucci, Prada, Burberry)",
+                              },
+                              {
+                                value: "premium designer",
+                                label:
+                                  "🌟 Premium Designer (Ralph Lauren, Calvin Klein)",
+                              },
+                              {
+                                value: "contemporary",
+                                label: "Contemporary (Zara, H&M, Mango)",
+                              },
+                              {
+                                value: "athletic premium",
+                                label:
+                                  "Athletic Premium (Lululemon, Arc'teryx)",
+                              },
+                              {
+                                value: "athletic mainstream",
+                                label: "Athletic (Nike, Adidas, Puma)",
+                              },
+                              {
+                                value: "streetwear",
+                                label: "Streetwear (Supreme, Off-White)",
+                              },
+                              {
+                                value: "fast fashion",
+                                label: "Fast Fashion (Shein, Forever 21)",
+                              },
+                              { value: "vintage", label: "🕰️ Vintage" },
+                              { value: "unbranded", label: "Unbranded" },
+                            ]}
+                            searchable
+                          />
+                        </Grid.Col>
+                      )}
 
-                        return (
-                          <Grid.Col key={key} span={{ base: 12, sm: 6 }}>
-                            <TextInput
-                              label={label}
-                              value={editedProduct[key] || ""}
-                              onChange={(e) =>
-                                setEditedProduct({
-                                  ...editedProduct,
-                                  [key]: e.target.value,
-                                })
-                              }
-                            />
-                          </Grid.Col>
-                        );
-                      })}
+                      {/* Electronics-specific: Carrier Lock Status */}
+                      {categoryData?.category === "electronics" && (
+                        <Grid.Col span={{ base: 12, sm: 6 }}>
+                          <Select
+                            label="Carrier Lock Status"
+                            value={editedProduct.carrier_lock_status || ""}
+                            onChange={(value) =>
+                              setEditedProduct({
+                                ...editedProduct,
+                                carrier_lock_status: value || "",
+                              })
+                            }
+                            data={[
+                              { value: "unlocked", label: "Unlocked" },
+                              { value: "locked", label: "Carrier Locked" },
+                              { value: "unknown", label: "Unknown" },
+                            ]}
+                          />
+                        </Grid.Col>
+                      )}
 
-                    <Grid.Col span={12}>
-                      <Textarea
-                        label="Description"
-                        value={editedProduct.short_description || ""}
-                        onChange={(e) =>
-                          setEditedProduct({
-                            ...editedProduct,
-                            short_description: e.target.value,
-                          })
-                        }
-                        rows={4}
-                      />
-                    </Grid.Col>
-                  </Grid>
-                </Card>
-              )}
+                      {/* Dynamic Metadata Fields */}
+                      {Object.entries(identificationData)
+                        .filter(([key, value]) => {
+                          // Skip core fields and internal fields
+                          const skipFields = [
+                            "identified_product",
+                            "brand",
+                            "model",
+                            "color_variants",
+                            "condition_rating",
+                            "product_condition",
+                            "estimated_year",
+                            "short_description",
+                            "confidence_score",
+                            "uuid",
+                            "category",
+                            "status",
+                            "brand_tier",
+                            "carrier_lock_status", // Now handled as explicit selects
+                            "clarity_feedback",
+                            "possible_confusion",
+                            "image_text_match", // Validation fields
+                            "missing_details",
+                            "preliminary_authenticity",
+                            "extraction_notes", // Internal fields
+                          ];
 
-              <Group justify="space-between">
-                <Button
-                  leftSection={<IconArrowLeft />}
-                  variant="light"
-                  onClick={() => setActive(1)}
-                >
-                  Back
-                </Button>
-                <Button
-                  rightSection={<IconArrowRight />}
-                  onClick={handleVerification}
-                  loading={isLoading}
-                  color="blue"
-                >
-                  Continue to Verification
-                </Button>
-              </Group>
-            </Stack>
-          </Paper>
+                          // Filter out empty values, null, undefined, and skip fields
+                          return (
+                            !skipFields.includes(key) &&
+                            value !== null &&
+                            value !== undefined &&
+                            value !== "" &&
+                            String(value).trim() !== ""
+                          );
+                        })
+                        .map(([key, value]) => {
+                          // Format field label (e.g., "material_composition" -> "Material Composition")
+                          const label = key
+                            .split("_")
+                            .map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            )
+                            .join(" ");
+
+                          return (
+                            <Grid.Col key={key} span={{ base: 12, sm: 6 }}>
+                              <TextInput
+                                label={label}
+                                value={editedProduct[key] || ""}
+                                onChange={(e) =>
+                                  setEditedProduct({
+                                    ...editedProduct,
+                                    [key]: e.target.value,
+                                  })
+                                }
+                              />
+                            </Grid.Col>
+                          );
+                        })}
+
+                      <Grid.Col span={12}>
+                        <Textarea
+                          label="Description"
+                          value={editedProduct.short_description || ""}
+                          onChange={(e) =>
+                            setEditedProduct({
+                              ...editedProduct,
+                              short_description: e.target.value,
+                            })
+                          }
+                          rows={4}
+                        />
+                      </Grid.Col>
+                    </Grid>
+                  </Card>
+                )}
+
+                <Group justify="space-between">
+                  <Button
+                    leftSection={<IconArrowLeft />}
+                    variant="light"
+                    onClick={() => setActive(1)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    rightSection={<IconArrowRight />}
+                    onClick={handleVerification}
+                    loading={isLoading}
+                    color="blue"
+                  >
+                    Continue to Verification
+                  </Button>
+                </Group>
+              </Stack>
+            </Paper>
           )}
 
           {/* Step 3: Verify */}
           {active === 3 && (
-          <Paper shadow="sm" p="md" withBorder mt="md">
-            <Stack gap="md">
-              <Group gap="xs">
-                <IconShieldCheck size={24} />
-                <Text fw={500} size="lg">Step 4: Product Authentication & Verification</Text>
-              </Group>
+            <Paper shadow="sm" p="md" withBorder mt="md">
+              <Stack gap="md">
+                <Group gap="xs">
+                  <IconShieldCheck size={24} />
+                  <Text fw={500} size="lg">
+                    Step 4: Product Authentication & Verification
+                  </Text>
+                </Group>
 
-              {isLoading && (
-                <Stack align="center" gap="md" py="xl">
-                  <Loader size="lg" />
-                  <Stack gap="xs" align="center">
-                    <Text size="sm" c="dimmed">Verifying product authenticity via web search...</Text>
-                    <Text size="xs" c="dimmed">🔍 Checking brand authenticity and detecting counterfeits...</Text>
+                {isLoading && (
+                  <Stack align="center" gap="md" py="xl">
+                    <Loader size="lg" />
+                    <Stack gap="xs" align="center">
+                      <Text size="sm" c="dimmed">
+                        Verifying product authenticity via web search...
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        🔍 Checking brand authenticity and detecting
+                        counterfeits...
+                      </Text>
+                    </Stack>
                   </Stack>
-                </Stack>
-              )}
+                )}
 
-              {verificationData && !isLoading && (
-                <Stack gap="md">
-                  {/* Status Badge with Summary */}
-                  <Card withBorder p="md">
-                    <Group justify="space-between" mb="md">
-                      <Group gap="xs">
-                        {verificationData.authenticity_status?.toLowerCase().includes('authentic') || 
-                         verificationData.authenticity_status?.toLowerCase().includes('verified') ? (
-                          <IconCheck size={24} color="green" />
-                        ) : (
-                          <IconAlertCircle size={24} color="orange" />
-                        )}
-                        <Text fw={600} size="lg">
-                          {verificationData.authenticity_status}
-                        </Text>
+                {verificationData && !isLoading && (
+                  <Stack gap="md">
+                    {/* Status Badge with Summary */}
+                    <Card withBorder p="md">
+                      <Group justify="space-between" mb="md">
+                        <Group gap="xs">
+                          {verificationData.authenticity_status
+                            ?.toLowerCase()
+                            .includes("authentic") ||
+                          verificationData.authenticity_status
+                            ?.toLowerCase()
+                            .includes("verified") ? (
+                            <IconCheck size={24} color="green" />
+                          ) : (
+                            <IconAlertCircle size={24} color="orange" />
+                          )}
+                          <Text fw={600} size="lg">
+                            {verificationData.authenticity_status}
+                          </Text>
+                        </Group>
+                        <Badge
+                          size="lg"
+                          color={
+                            verificationData.verification_confidence >= 80
+                              ? "green"
+                              : verificationData.verification_confidence >= 60
+                                ? "yellow"
+                                : "orange"
+                          }
+                        >
+                          Confidence: {verificationData.verification_confidence}
+                          %
+                        </Badge>
                       </Group>
-                      <Badge
-                        size="lg"
-                        color={
-                          verificationData.verification_confidence >= 80
-                            ? "green"
-                            : verificationData.verification_confidence >= 60
-                            ? "yellow"
-                            : "orange"
-                        }
-                      >
-                        Confidence: {verificationData.verification_confidence}%
-                      </Badge>
-                    </Group>
 
-                    <Text size="sm" c="dimmed">
-                      {verificationData.authentication_summary || verificationData.verification_summary}
-                    </Text>
-                  </Card>
-
-                  {/* Brand Tier Context (Fashion Only) */}
-                  {categoryData?.category === 'fashion' && identificationData?.brand_tier && (
-                    <Alert
-                      color={
-                        identificationData.brand_tier === 'ultra-luxury' || identificationData.brand_tier === 'luxury'
-                          ? 'yellow'
-                          : 'blue'
-                      }
-                      icon={
-                        identificationData.brand_tier === 'ultra-luxury' ? '💎' :
-                        identificationData.brand_tier === 'luxury' ? '✨' :
-                        identificationData.brand_tier === 'vintage' ? '🕰️' :
-                        identificationData.brand_tier === 'fast fashion' ? '👕' : '🌟'
-                      }
-                    >
-                      <Text fw={600} size="sm">
-                        {identificationData.brand_tier === 'ultra-luxury' && 'This is an ultra-luxury brand. Authentication is critical due to high counterfeit risk.'}
-                        {identificationData.brand_tier === 'luxury' && 'This is a luxury brand. Careful authentication recommended.'}
-                        {identificationData.brand_tier === 'premium designer' && 'This is a premium designer brand. Authentication adds value.'}
-                        {identificationData.brand_tier === 'fast fashion' && 'This is a fast fashion brand. Focus on condition over authenticity.'}
-                        {identificationData.brand_tier === 'vintage' && 'This is a vintage item. Age and condition are key factors.'}
-                        {identificationData.brand_tier === 'unbranded' && 'This is an unbranded item. Authentication not applicable.'}
-                        {!['ultra-luxury', 'luxury', 'premium designer', 'fast fashion', 'vintage', 'unbranded'].includes(identificationData.brand_tier) && 'Brand tier provides context for pricing and authentication.'}
+                      <Text size="sm" c="dimmed">
+                        {verificationData.authentication_summary ||
+                          verificationData.verification_summary}
                       </Text>
-                    </Alert>
-                  )}
-
-                  {/* Authentic Markers Found */}
-                  {verificationData.authentic_markers_found && verificationData.authentic_markers_found.length > 0 && (
-                    <Card withBorder p="md">
-                      <Group gap="xs" mb="sm">
-                        <IconCheck size={18} color="green" />
-                        <Text fw={600} c="green">✅ Authentic Markers:</Text>
-                      </Group>
-                      <Stack gap="xs">
-                        {verificationData.authentic_markers_found.map((marker: string, idx: number) => (
-                          <Text key={idx} size="sm" pl="md">
-                            • {marker}
-                          </Text>
-                        ))}
-                      </Stack>
                     </Card>
-                  )}
 
-                  {/* Red Flags Found */}
-                  {verificationData.red_flags_found && verificationData.red_flags_found.length > 0 && 
-                   verificationData.red_flags_found[0]?.toLowerCase() !== 'none' && (
-                    <Alert icon={<IconAlertCircle />} color="red" title="⚠️ Red Flags Detected">
-                      <Stack gap="xs">
-                        {verificationData.red_flags_found.map((flag: string, idx: number) => (
-                          <Text key={idx} size="sm">
-                            • {flag}
+                    {/* Brand Tier Context (Fashion Only) */}
+                    {categoryData?.category === "fashion" &&
+                      identificationData?.brand_tier && (
+                        <Alert
+                          color={
+                            identificationData.brand_tier === "ultra-luxury" ||
+                            identificationData.brand_tier === "luxury"
+                              ? "yellow"
+                              : "blue"
+                          }
+                          icon={
+                            identificationData.brand_tier === "ultra-luxury"
+                              ? "💎"
+                              : identificationData.brand_tier === "luxury"
+                                ? "✨"
+                                : identificationData.brand_tier === "vintage"
+                                  ? "🕰️"
+                                  : identificationData.brand_tier ===
+                                      "fast fashion"
+                                    ? "👕"
+                                    : "🌟"
+                          }
+                        >
+                          <Text fw={600} size="sm">
+                            {identificationData.brand_tier === "ultra-luxury" &&
+                              "This is an ultra-luxury brand. Authentication is critical due to high counterfeit risk."}
+                            {identificationData.brand_tier === "luxury" &&
+                              "This is a luxury brand. Careful authentication recommended."}
+                            {identificationData.brand_tier ===
+                              "premium designer" &&
+                              "This is a premium designer brand. Authentication adds value."}
+                            {identificationData.brand_tier === "fast fashion" &&
+                              "This is a fast fashion brand. Focus on condition over authenticity."}
+                            {identificationData.brand_tier === "vintage" &&
+                              "This is a vintage item. Age and condition are key factors."}
+                            {identificationData.brand_tier === "unbranded" &&
+                              "This is an unbranded item. Authentication not applicable."}
+                            {![
+                              "ultra-luxury",
+                              "luxury",
+                              "premium designer",
+                              "fast fashion",
+                              "vintage",
+                              "unbranded",
+                            ].includes(identificationData.brand_tier) &&
+                              "Brand tier provides context for pricing and authentication."}
                           </Text>
-                        ))}
-                      </Stack>
-                    </Alert>
-                  )}
+                        </Alert>
+                      )}
 
-                  {/* Legacy authenticity warnings (fallback) */}
-                  {!verificationData.red_flags_found && verificationData.authenticity_warnings && 
-                   verificationData.authenticity_warnings.length > 0 && (
-                    <Alert icon={<IconAlertCircle />} color="yellow">
-                      <Stack gap="xs">
-                        <Text fw={600}>Warnings:</Text>
-                        {verificationData.authenticity_warnings.map((warning: string, idx: number) => (
-                          <Text key={idx} size="sm">
-                            • {warning}
-                          </Text>
-                        ))}
-                      </Stack>
-                    </Alert>
-                  )}
-
-                  {/* Brand Authentication Info */}
-                  <Alert color="blue" icon={<IconAlertCircle />}>
-                    <Text size="sm" fw={500}>
-                      Brand authentication helps ensure accurate pricing.
-                    </Text>
-                  </Alert>
-
-                  {/* Official Sources Checked (Collapsible) */}
-                  {verificationData.official_sources_checked && verificationData.official_sources_checked.length > 0 && (
-                    <Card withBorder p="md">
-                      <details>
-                        <summary style={{ cursor: 'pointer', fontWeight: 500 }}>
-                          📚 Sources Checked
-                        </summary>
-                        <Stack gap="xs" mt="sm">
-                          {verificationData.official_sources_checked.map((source: string, idx: number) => (
-                            <Text key={idx} size="xs" c="dimmed" pl="md">
-                              • {source}
+                    {/* Authentic Markers Found */}
+                    {verificationData.authentic_markers_found &&
+                      verificationData.authentic_markers_found.length > 0 && (
+                        <Card withBorder p="md">
+                          <Group gap="xs" mb="sm">
+                            <IconCheck size={18} color="green" />
+                            <Text fw={600} c="green">
+                              ✅ Authentic Markers:
                             </Text>
-                          ))}
-                        </Stack>
-                      </details>
-                    </Card>
-                  )}
+                          </Group>
+                          <Stack gap="xs">
+                            {verificationData.authentic_markers_found.map(
+                              (marker: string, idx: number) => (
+                                <Text key={idx} size="sm" pl="md">
+                                  • {marker}
+                                </Text>
+                              )
+                            )}
+                          </Stack>
+                        </Card>
+                      )}
 
-                  {/* Recommendations */}
-                  {verificationData.recommendations && (
-                    <Alert color="yellow" icon={<IconAlertCircle />}>
-                      <Text size="sm" fw={500} mb="xs">💡 Recommendations:</Text>
-                      <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-                        {verificationData.recommendations}
+                    {/* Red Flags Found */}
+                    {verificationData.red_flags_found &&
+                      verificationData.red_flags_found.length > 0 &&
+                      verificationData.red_flags_found[0]?.toLowerCase() !==
+                        "none" && (
+                        <Alert
+                          icon={<IconAlertCircle />}
+                          color="red"
+                          title="⚠️ Red Flags Detected"
+                        >
+                          <Stack gap="xs">
+                            {verificationData.red_flags_found.map(
+                              (flag: string, idx: number) => (
+                                <Text key={idx} size="sm">
+                                  • {flag}
+                                </Text>
+                              )
+                            )}
+                          </Stack>
+                        </Alert>
+                      )}
+
+                    {/* Legacy authenticity warnings (fallback) */}
+                    {!verificationData.red_flags_found &&
+                      verificationData.authenticity_warnings &&
+                      verificationData.authenticity_warnings.length > 0 && (
+                        <Alert icon={<IconAlertCircle />} color="yellow">
+                          <Stack gap="xs">
+                            <Text fw={600}>Warnings:</Text>
+                            {verificationData.authenticity_warnings.map(
+                              (warning: string, idx: number) => (
+                                <Text key={idx} size="sm">
+                                  • {warning}
+                                </Text>
+                              )
+                            )}
+                          </Stack>
+                        </Alert>
+                      )}
+
+                    {/* Brand Authentication Info */}
+                    <Alert color="blue" icon={<IconAlertCircle />}>
+                      <Text size="sm" fw={500}>
+                        Brand authentication helps ensure accurate pricing.
                       </Text>
                     </Alert>
-                  )}
 
-                  {/* Additional Details (if available) */}
-                  {verificationData.authenticity_details && (
-                    <Card withBorder p="md">
-                      <Text fw={500} mb="sm">Authenticity Details:</Text>
-                      <Text size="sm" c="dimmed" style={{ whiteSpace: 'pre-wrap' }}>
-                        {verificationData.authenticity_details}
-                      </Text>
-                    </Card>
-                  )}
+                    {/* Official Sources Checked (Collapsible) */}
+                    {verificationData.official_sources_checked &&
+                      verificationData.official_sources_checked.length > 0 && (
+                        <Card withBorder p="md">
+                          <details>
+                            <summary
+                              style={{ cursor: "pointer", fontWeight: 500 }}
+                            >
+                              📚 Sources Checked
+                            </summary>
+                            <Stack gap="xs" mt="sm">
+                              {verificationData.official_sources_checked.map(
+                                (source: string, idx: number) => (
+                                  <Text key={idx} size="xs" c="dimmed" pl="md">
+                                    • {source}
+                                  </Text>
+                                )
+                              )}
+                            </Stack>
+                          </details>
+                        </Card>
+                      )}
 
-                  {/* Specs Match Badge (for electronics - legacy) */}
-                  {verificationData.specs_match !== undefined && (
-                    <Group>
-                      <Badge color={verificationData.specs_match ? "green" : "red"}>
-                        Specs {verificationData.specs_match ? "Match" : "Mismatch"}
-                      </Badge>
-                    </Group>
-                  )}
-                </Stack>
-              )}
+                    {/* Recommendations */}
+                    {verificationData.recommendations && (
+                      <Alert color="yellow" icon={<IconAlertCircle />}>
+                        <Text size="sm" fw={500} mb="xs">
+                          💡 Recommendations:
+                        </Text>
+                        <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
+                          {verificationData.recommendations}
+                        </Text>
+                      </Alert>
+                    )}
 
-              <Group justify="space-between" mt="md">
-                <Button
-                  leftSection={<IconArrowLeft />}
-                  variant="light"
-                  onClick={() => setActive(2)}
-                  disabled={isLoading}
-                >
-                  Back
-                </Button>
-                <Button
-                  rightSection={<IconArrowRight />}
-                  onClick={handleConfirmation}
-                  loading={isLoading}
-                  color="blue"
-                >
-                  Continue to Pricing
-                </Button>
-              </Group>
-            </Stack>
-          </Paper>
+                    {/* Additional Details (if available) */}
+                    {verificationData.authenticity_details && (
+                      <Card withBorder p="md">
+                        <Text fw={500} mb="sm">
+                          Authenticity Details:
+                        </Text>
+                        <Text
+                          size="sm"
+                          c="dimmed"
+                          style={{ whiteSpace: "pre-wrap" }}
+                        >
+                          {verificationData.authenticity_details}
+                        </Text>
+                      </Card>
+                    )}
+
+                    {/* Specs Match Badge (for electronics - legacy) */}
+                    {verificationData.specs_match !== undefined && (
+                      <Group>
+                        <Badge
+                          color={verificationData.specs_match ? "green" : "red"}
+                        >
+                          Specs{" "}
+                          {verificationData.specs_match ? "Match" : "Mismatch"}
+                        </Badge>
+                      </Group>
+                    )}
+                  </Stack>
+                )}
+
+                <Group justify="space-between" mt="md">
+                  <Button
+                    leftSection={<IconArrowLeft />}
+                    variant="light"
+                    onClick={() => setActive(2)}
+                    disabled={isLoading}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    rightSection={<IconArrowRight />}
+                    onClick={handleConfirmation}
+                    loading={isLoading}
+                    color="blue"
+                  >
+                    Continue to Pricing
+                  </Button>
+                </Group>
+              </Stack>
+            </Paper>
           )}
 
           {/* Step 4: Pricing */}
           {active === 4 && (
-          <Paper shadow="sm" p="md" withBorder mt="md">
-            <Stack gap="md">
-              <Group gap="xs">
-                <IconCurrencyDollar size={24} />
-                <Text fw={500} size="lg">Step 5: Market Price Analysis</Text>
-              </Group>
-              
-              {uuid && categoryData ? (
-                <AIMarketplacePricing
-                  uuid={uuid}
-                  category={categoryData.category}
-                  onPricingComplete={(data) => {
-                    setPricingData(data);
-                  }}
-                />
-              ) : (
-                <Alert icon={<IconAlertCircle />} color="yellow">
-                  Unable to fetch pricing data. Product UUID not found.
-                </Alert>
-              )}
+            <Paper shadow="sm" p="md" withBorder mt="md">
+              <Stack gap="md">
+                <Group gap="xs">
+                  <IconCurrencyDollar size={24} />
+                  <Text fw={500} size="lg">
+                    Step 5: Market Price Analysis
+                  </Text>
+                </Group>
 
-              <Group justify="space-between" mt="lg">
-                <Button
-                  leftSection={<IconArrowLeft />}
-                  variant="light"
-                  onClick={() => setActive(3)}
-                >
-                  Back to Verification
-                </Button>
-                <Button
-                  rightSection={<IconCheck />}
-                  onClick={handlePricingComplete}
-                  color="green"
-                >
-                  Complete Analysis
-                </Button>
-              </Group>
-            </Stack>
-          </Paper>
+                {uuid && categoryData ? (
+                  <AIMarketplacePricing
+                    uuid={uuid}
+                    category={categoryData.category}
+                    onPricingComplete={(data) => {
+                      setPricingData(data);
+                    }}
+                  />
+                ) : (
+                  <Alert icon={<IconAlertCircle />} color="yellow">
+                    Unable to fetch pricing data. Product UUID not found.
+                  </Alert>
+                )}
+
+                <Group justify="space-between" mt="lg">
+                  <Button
+                    leftSection={<IconArrowLeft />}
+                    variant="light"
+                    onClick={() => setActive(3)}
+                  >
+                    Back to Verification
+                  </Button>
+                  <Button
+                    rightSection={<IconCheck />}
+                    onClick={handlePricingComplete}
+                    color="green"
+                  >
+                    Complete Analysis
+                  </Button>
+                </Group>
+              </Stack>
+            </Paper>
           )}
 
-          {/* Step 5: Completed */}
+          {/* Completion Step: Step 5 for all categories */}
           {active === 5 && (
-          <Paper shadow="sm" p="md" withBorder mt="md">
-            <Stack gap="md">
-              <Group justify="center">
-                <IconCheck size={48} color="green" />
-              </Group>
-              <Text fw={600} size="xl" ta="center">
-                Product Detection Complete!
-              </Text>
-              <Text c="dimmed" ta="center">
-                Your product has been successfully analyzed and saved.
-              </Text>
+            <Paper shadow="sm" p="md" withBorder mt="md">
+              <Stack gap="md">
+                <Group justify="center">
+                  <IconCheck size={48} color="green" />
+                </Group>
+                <Text fw={600} size="xl" ta="center">
+                  Product Detection Complete!
+                </Text>
+                <Text c="dimmed" ta="center">
+                  Your product has been successfully analyzed and saved.
+                </Text>
 
-              {/* Show uploaded images */}
-              {capturedImages.length > 0 && (
-                <div>
-                  <Text fw={500} mb="sm">Uploaded Images</Text>
-                  <Grid>
-                    {capturedImages.map((img, idx) => (
-                      <Grid.Col key={idx} span={{ base: 6, sm: 4, md: 3 }}>
-                        <Image src={img} alt={`Product ${idx + 1}`} radius="md" />
-                      </Grid.Col>
-                    ))}
-                  </Grid>
-                </div>
-              )}
+                {/* Show uploaded images */}
+                {capturedImages.length > 0 && (
+                  <div>
+                    <Text fw={500} mb="sm">
+                      Uploaded Images
+                    </Text>
+                    <Grid>
+                      {capturedImages.map((img, idx) => (
+                        <Grid.Col key={idx} span={{ base: 6, sm: 4, md: 3 }}>
+                          <Image
+                            src={img}
+                            alt={`Product ${idx + 1}`}
+                            radius="md"
+                          />
+                        </Grid.Col>
+                      ))}
+                    </Grid>
+                  </div>
+                )}
 
-              {/* Category Information */}
-              {categoryData && (
-                <Card withBorder>
-                  <Text fw={600} size="lg" mb="md">
-                    Category
-                  </Text>
-                  <Stack gap="xs">
-                    <Group justify="apart">
-                      <Text size="sm" c="dimmed">Detected Category:</Text>
-                      <Badge size="lg" color="blue">
-                        {categoryData.category.toUpperCase()}
-                      </Badge>
-                    </Group>
-                    <Group justify="apart">
-                      <Text size="sm" c="dimmed">Product Type:</Text>
-                      <Text fw={500}>{categoryData.detected_product_type}</Text>
-                    </Group>
-                    <Group justify="apart">
-                      <Text size="sm" c="dimmed">Confidence:</Text>
-                      <Badge color="green">{categoryData.confidence_score}%</Badge>
-                    </Group>
-                  </Stack>
-                </Card>
-              )}
-
-              {/* Product Details */}
-              {identificationData && (
-                <Card withBorder>
-                  <Text fw={600} size="lg" mb="md">
-                    Product Details
-                  </Text>
-                  <Stack gap="xs">
-                    <Group justify="apart">
-                      <Text size="sm" c="dimmed">Product:</Text>
-                      <Text fw={500}>{identificationData.identified_product}</Text>
-                    </Group>
-                    <Group justify="apart">
-                      <Text size="sm" c="dimmed">Brand:</Text>
-                      <Text fw={500}>{identificationData.brand}</Text>
-                    </Group>
-                    {identificationData.model && (
+                {/* Category Information */}
+                {categoryData && (
+                  <Card withBorder>
+                    <Text fw={600} size="lg" mb="md">
+                      Category
+                    </Text>
+                    <Stack gap="xs">
                       <Group justify="apart">
-                        <Text size="sm" c="dimmed">Model:</Text>
-                        <Text fw={500}>{identificationData.model}</Text>
-                      </Group>
-                    )}
-                    {identificationData.color_variants && (
-                      <Group justify="apart">
-                        <Text size="sm" c="dimmed">Color:</Text>
-                        <Text fw={500}>{identificationData.color_variants}</Text>
-                      </Group>
-                    )}
-                    <Group justify="apart">
-                      <Text size="sm" c="dimmed">Condition:</Text>
-                      <Badge color="blue">{identificationData.condition_rating}</Badge>
-                    </Group>
-                    {identificationData.product_condition && (
-                      <Group justify="apart">
-                        <Text size="sm" c="dimmed">Product Condition:</Text>
-                        <Badge color={identificationData.product_condition === 'new' ? 'green' : 'yellow'}>
-                          {identificationData.product_condition.toUpperCase()}
+                        <Text size="sm" c="dimmed">
+                          Detected Category:
+                        </Text>
+                        <Badge size="lg" color="blue">
+                          {categoryData.category.toUpperCase()}
                         </Badge>
                       </Group>
-                    )}
-                    {identificationData.estimated_year && (
                       <Group justify="apart">
-                        <Text size="sm" c="dimmed">Estimated Year:</Text>
-                        <Text fw={500}>{identificationData.estimated_year}</Text>
-                      </Group>
-                    )}
-                    {identificationData.short_description && (
-                      <div>
-                        <Text size="sm" c="dimmed" mb="xs">Description:</Text>
-                        <Text size="sm">{identificationData.short_description}</Text>
-                      </div>
-                    )}
-                    <Group justify="apart">
-                      <Text size="sm" c="dimmed">Confidence Score:</Text>
-                      <Badge color="green">{identificationData.confidence_score}%</Badge>
-                    </Group>
-                  </Stack>
-                </Card>
-              )}
-
-              {/* Verification Results */}
-              {verificationData && (
-                <Card withBorder>
-                  <Text fw={600} size="lg" mb="md">
-                    Verification Results
-                  </Text>
-                  <Stack gap="xs">
-                    <Group justify="apart">
-                      <Text size="sm" c="dimmed">Authenticity Status:</Text>
-                      <Badge 
-                        size="lg"
-                        color={
-                          verificationData.authenticity_status?.toLowerCase().includes('authentic') ||
-                          verificationData.authenticity_status?.toLowerCase().includes('verified')
-                            ? "green"
-                            : verificationData.authenticity_status?.toLowerCase().includes('uncertain')
-                            ? "yellow"
-                            : "orange"
-                        }
-                      >
-                        {verificationData.authenticity_status}
-                      </Badge>
-                    </Group>
-                    <Group justify="apart">
-                      <Text size="sm" c="dimmed">Verification Confidence:</Text>
-                      <Badge 
-                        color={
-                          verificationData.verification_confidence >= 80
-                            ? "green"
-                            : verificationData.verification_confidence >= 60
-                            ? "yellow"
-                            : "orange"
-                        }
-                      >
-                        {verificationData.verification_confidence}%
-                      </Badge>
-                    </Group>
-                    {verificationData.authentication_summary && (
-                      <div>
-                        <Text size="sm" c="dimmed" mb="xs">Summary:</Text>
-                        <Text size="sm">{verificationData.authentication_summary}</Text>
-                      </div>
-                    )}
-                  </Stack>
-                </Card>
-              )}
-
-              {/* AI Marketplace Pricing */}
-              {pricingData && (
-                <Card withBorder>
-                  <Text fw={600} size="lg" mb="md">
-                    Market Pricing
-                  </Text>
-                  
-                  {/* Overall Recommendation */}
-                  {pricingData.overall_recommendation && (
-                    <Alert color="green" icon={<IconCheck />} mb="md">
-                      <Text size="sm">{pricingData.overall_recommendation}</Text>
-                    </Alert>
-                  )}
-
-                  {/* Marketplace Data */}
-                  <Grid>
-                    {Object.entries(pricingData)
-                      .filter(([key]) => key.endsWith('_market'))
-                      .map(([key, data]: [string, any]) => {
-                        if (!data || !data.average || data.sample_size === 0) return null;
-                        
-                        const marketName = key
-                          .replace('_market', '')
-                          .split('_')
-                          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-                          .join(' ');
-
-                        return (
-                          <Grid.Col key={key} span={{ base: 12, sm: 6 }}>
-                            <Card withBorder p="sm">
-                              <Text fw={600} size="sm" mb="xs">{marketName}</Text>
-                              <Group justify="apart">
-                                <Text size="xs" c="dimmed">Average:</Text>
-                                <Text fw={600} c="green">{data.average}</Text>
-                              </Group>
-                              <Group justify="apart">
-                                <Text size="xs" c="dimmed">Range:</Text>
-                                <Text size="xs">{data.lowest} - {data.highest}</Text>
-                              </Group>
-                              <Text size="xs" c="dimmed" mt="xs">
-                                Based on {data.sample_size} listings
-                              </Text>
-                            </Card>
-                          </Grid.Col>
-                        );
-                      })}
-                  </Grid>
-
-                  {/* SnaptoSell Suggestion */}
-                  {pricingData.SnaptoSell_suggestion && (
-                    <Card withBorder p="md" bg="blue.0" mt="md">
-                      <Text fw={600} mb="sm">💡 SnaptoSell Recommendation</Text>
-                      <Group justify="apart">
-                        <Text size="sm" c="dimmed">Typical Resale Price:</Text>
-                        <Text fw={700} c="green" size="lg">
-                          {pricingData.SnaptoSell_suggestion.typical_resale_price}
+                        <Text size="sm" c="dimmed">
+                          Product Type:
+                        </Text>
+                        <Text fw={500}>
+                          {categoryData.detected_product_type}
                         </Text>
                       </Group>
-                      <Group justify="apart" mt="xs">
-                        <Text size="sm" c="dimmed">Price Range:</Text>
-                        <Text fw={600}>{pricingData.SnaptoSell_suggestion.price_range}</Text>
-                      </Group>
-                      <Group justify="apart" mt="xs">
-                        <Text size="sm" c="dimmed">Confidence:</Text>
-                        <Badge color={
-                          pricingData.SnaptoSell_suggestion.confidence === 'high'
-                            ? 'green'
-                            : pricingData.SnaptoSell_suggestion.confidence === 'medium'
-                            ? 'yellow'
-                            : 'orange'
-                        }>
-                          {pricingData.SnaptoSell_suggestion.confidence.toUpperCase()}
+                      <Group justify="apart">
+                        <Text size="sm" c="dimmed">
+                          Confidence:
+                        </Text>
+                        <Badge color="green">
+                          {categoryData.confidence_score}%
                         </Badge>
                       </Group>
-                    </Card>
-                  )}
-                </Card>
-              )}
+                    </Stack>
+                  </Card>
+                )}
 
-              {/* Execution Time */}
-              {Object.keys(timeBreakdown).length > 0 && (
-                <Card withBorder>
-                  <Text fw={600} size="sm" mb="md">⏱️ Execution Time Breakdown</Text>
-                  <Stack gap="xs">
-                    {timeBreakdown.stage0 && (
+                {/* Product Details */}
+                {identificationData && (
+                  <Card withBorder>
+                    <Text fw={600} size="lg" mb="md">
+                      Product Details
+                    </Text>
+                    <Stack gap="xs">
                       <Group justify="apart">
-                        <Text size="sm" c="dimmed">Category Detection:</Text>
-                        <Text size="sm">{timeBreakdown.stage0.toFixed(2)}s</Text>
+                        <Text size="sm" c="dimmed">
+                          Product:
+                        </Text>
+                        <Text fw={500}>
+                          {identificationData.identified_product}
+                        </Text>
                       </Group>
-                    )}
-                    {timeBreakdown.stage1 && (
                       <Group justify="apart">
-                        <Text size="sm" c="dimmed">Identification:</Text>
-                        <Text size="sm">{timeBreakdown.stage1.toFixed(2)}s</Text>
+                        <Text size="sm" c="dimmed">
+                          Brand:
+                        </Text>
+                        <Text fw={500}>{identificationData.brand}</Text>
                       </Group>
-                    )}
-                    {timeBreakdown.stage2 && (
+                      {identificationData.model && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Model:
+                          </Text>
+                          <Text fw={500}>{identificationData.model}</Text>
+                        </Group>
+                      )}
+                      {identificationData.color_variants && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Color:
+                          </Text>
+                          <Text fw={500}>
+                            {identificationData.color_variants}
+                          </Text>
+                        </Group>
+                      )}
                       <Group justify="apart">
-                        <Text size="sm" c="dimmed">Verification:</Text>
-                        <Text size="sm">{timeBreakdown.stage2.toFixed(2)}s</Text>
+                        <Text size="sm" c="dimmed">
+                          Condition:
+                        </Text>
+                        <Badge color="blue">
+                          {identificationData.condition_rating}
+                        </Badge>
                       </Group>
-                    )}
-                    {timeBreakdown.stage3 && (
+                      {identificationData.product_condition && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Product Condition:
+                          </Text>
+                          <Badge
+                            color={
+                              identificationData.product_condition === "new"
+                                ? "green"
+                                : "yellow"
+                            }
+                          >
+                            {identificationData.product_condition.toUpperCase()}
+                          </Badge>
+                        </Group>
+                      )}
+                      {identificationData.estimated_year && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Estimated Year:
+                          </Text>
+                          <Text fw={500}>
+                            {identificationData.estimated_year}
+                          </Text>
+                        </Group>
+                      )}
+                      {identificationData.short_description && (
+                        <div>
+                          <Text size="sm" c="dimmed" mb="xs">
+                            Description:
+                          </Text>
+                          <Text size="sm">
+                            {identificationData.short_description}
+                          </Text>
+                        </div>
+                      )}
                       <Group justify="apart">
-                        <Text size="sm" c="dimmed">Pricing:</Text>
-                        <Text size="sm">{timeBreakdown.stage3.toFixed(2)}s</Text>
+                        <Text size="sm" c="dimmed">
+                          Confidence Score:
+                        </Text>
+                        <Badge color="green">
+                          {identificationData.confidence_score}%
+                        </Badge>
                       </Group>
-                    )}
-                    <Divider />
-                    <Group justify="apart">
-                      <Text fw={600}>Total:</Text>
-                      <Text fw={600}>
-                        {Object.values(timeBreakdown).reduce((a, b) => a + (b || 0), 0).toFixed(2)}s
-                      </Text>
-                    </Group>
-                  </Stack>
-                </Card>
-              )}
+                    </Stack>
+                  </Card>
+                )}
 
-              {/* Navigation buttons */}
-              <Group justify="center" gap="md">
-                <Button
-                  onClick={() => {
-                    const report = {
-                      ...identificationData,
-                      ...verificationData,
-                      ...pricingData,
-                      analysis_metadata: {
-                        timestamp: new Date().toISOString(),
-                        analyzer_version: "2.0.0",
-                        model_used: "gpt-5.1-2025-11-13",
-                        execution_times: timeBreakdown,
-                        product_category: categoryData?.category
+                {/* Verification Results */}
+                {verificationData && (
+                  <Card withBorder>
+                    <Text fw={600} size="lg" mb="md">
+                      Verification Results
+                    </Text>
+                    <Stack gap="xs">
+                      <Group justify="apart">
+                        <Text size="sm" c="dimmed">
+                          Authenticity Status:
+                        </Text>
+                        <Badge
+                          size="lg"
+                          color={
+                            verificationData.authenticity_status
+                              ?.toLowerCase()
+                              .includes("authentic") ||
+                            verificationData.authenticity_status
+                              ?.toLowerCase()
+                              .includes("verified")
+                              ? "green"
+                              : verificationData.authenticity_status
+                                    ?.toLowerCase()
+                                    .includes("uncertain")
+                                ? "yellow"
+                                : "orange"
+                          }
+                        >
+                          {verificationData.authenticity_status}
+                        </Badge>
+                      </Group>
+                      <Group justify="apart">
+                        <Text size="sm" c="dimmed">
+                          Verification Confidence:
+                        </Text>
+                        <Badge
+                          color={
+                            verificationData.verification_confidence >= 80
+                              ? "green"
+                              : verificationData.verification_confidence >= 60
+                                ? "yellow"
+                                : "orange"
+                          }
+                        >
+                          {verificationData.verification_confidence}%
+                        </Badge>
+                      </Group>
+                      {verificationData.authentication_summary && (
+                        <div>
+                          <Text size="sm" c="dimmed" mb="xs">
+                            Summary:
+                          </Text>
+                          <Text size="sm">
+                            {verificationData.authentication_summary}
+                          </Text>
+                        </div>
+                      )}
+                    </Stack>
+                  </Card>
+                )}
+
+                {/* AI Marketplace Pricing */}
+                {pricingData && (
+                  <Card withBorder>
+                    <Text fw={600} size="lg" mb="md">
+                      Market Pricing
+                    </Text>
+
+                    {/* Overall Recommendation */}
+                    {pricingData.overall_recommendation && (
+                      <Alert color="green" icon={<IconCheck />} mb="md">
+                        <Text size="sm">
+                          {pricingData.overall_recommendation}
+                        </Text>
+                      </Alert>
+                    )}
+
+                    {/* Marketplace Data */}
+                    <Grid>
+                      {Object.entries(pricingData)
+                        .filter(([key]) => key.endsWith("_market"))
+                        .map(([key, data]: [string, any]) => {
+                          if (!data || !data.average || data.sample_size === 0)
+                            return null;
+
+                          const marketName = key
+                            .replace("_market", "")
+                            .split("_")
+                            .map(
+                              (w: string) =>
+                                w.charAt(0).toUpperCase() + w.slice(1)
+                            )
+                            .join(" ");
+
+                          return (
+                            <Grid.Col key={key} span={{ base: 12, sm: 6 }}>
+                              <Card withBorder p="sm">
+                                <Text fw={600} size="sm" mb="xs">
+                                  {marketName}
+                                </Text>
+                                <Group justify="apart">
+                                  <Text size="xs" c="dimmed">
+                                    Average:
+                                  </Text>
+                                  <Text fw={600} c="green">
+                                    {data.average}
+                                  </Text>
+                                </Group>
+                                <Group justify="apart">
+                                  <Text size="xs" c="dimmed">
+                                    Range:
+                                  </Text>
+                                  <Text size="xs">
+                                    {data.lowest} - {data.highest}
+                                  </Text>
+                                </Group>
+                                <Text size="xs" c="dimmed" mt="xs">
+                                  Based on {data.sample_size} listings
+                                </Text>
+                              </Card>
+                            </Grid.Col>
+                          );
+                        })}
+                    </Grid>
+
+                    {/* SnaptoSell Suggestion */}
+                    {pricingData.SnaptoSell_suggestion && (
+                      <Card withBorder p="md" bg="blue.0" mt="md">
+                        <Text fw={600} mb="sm">
+                          💡 SnaptoSell Recommendation
+                        </Text>
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Typical Resale Price:
+                          </Text>
+                          <Text fw={700} c="green" size="lg">
+                            {
+                              pricingData.SnaptoSell_suggestion
+                                .typical_resale_price
+                            }
+                          </Text>
+                        </Group>
+                        <Group justify="apart" mt="xs">
+                          <Text size="sm" c="dimmed">
+                            Price Range:
+                          </Text>
+                          <Text fw={600}>
+                            {pricingData.SnaptoSell_suggestion.price_range}
+                          </Text>
+                        </Group>
+                        <Group justify="apart" mt="xs">
+                          <Text size="sm" c="dimmed">
+                            Confidence:
+                          </Text>
+                          <Badge
+                            color={
+                              pricingData.SnaptoSell_suggestion.confidence ===
+                              "high"
+                                ? "green"
+                                : pricingData.SnaptoSell_suggestion
+                                      .confidence === "medium"
+                                  ? "yellow"
+                                  : "orange"
+                            }
+                          >
+                            {pricingData.SnaptoSell_suggestion.confidence.toUpperCase()}
+                          </Badge>
+                        </Group>
+                      </Card>
+                    )}
+                  </Card>
+                )}
+
+                {/* Execution Time */}
+                {Object.keys(timeBreakdown).length > 0 && (
+                  <Card withBorder>
+                    <Text fw={600} size="sm" mb="md">
+                      ⏱️ Execution Time Breakdown
+                    </Text>
+                    <Stack gap="xs">
+                      {timeBreakdown.stage0 && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Category Detection:
+                          </Text>
+                          <Text size="sm">
+                            {timeBreakdown.stage0.toFixed(2)}s
+                          </Text>
+                        </Group>
+                      )}
+                      {timeBreakdown.stage1 && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Identification:
+                          </Text>
+                          <Text size="sm">
+                            {timeBreakdown.stage1.toFixed(2)}s
+                          </Text>
+                        </Group>
+                      )}
+                      {timeBreakdown.stage2 && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Verification:
+                          </Text>
+                          <Text size="sm">
+                            {timeBreakdown.stage2.toFixed(2)}s
+                          </Text>
+                        </Group>
+                      )}
+                      {timeBreakdown.stage3 && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Pricing:
+                          </Text>
+                          <Text size="sm">
+                            {timeBreakdown.stage3.toFixed(2)}s
+                          </Text>
+                        </Group>
+                      )}
+                      <Divider />
+                      <Group justify="apart">
+                        <Text fw={600}>Total:</Text>
+                        <Text fw={600}>
+                          {Object.values(timeBreakdown)
+                            .reduce((a, b) => a + (b || 0), 0)
+                            .toFixed(2)}
+                          s
+                        </Text>
+                      </Group>
+                    </Stack>
+                  </Card>
+                )}
+
+                {/* Navigation buttons */}
+                <Group justify="center" gap="md">
+                  {/* <Button
+                    onClick={() => {
+                      // Generate PDF Report
+                      const pdf = new jsPDF();
+                      const pageWidth = pdf.internal.pageSize.getWidth();
+                      const pageHeight = pdf.internal.pageSize.getHeight();
+                      const margin = 20;
+                      const maxWidth = pageWidth - (margin * 2);
+                      let yPosition = margin;
+                      
+                      // Title
+                      pdf.setFontSize(20);
+                      pdf.setFont('helvetica', 'bold');
+                      pdf.text('SnaptoSell Product Analysis Report', margin, yPosition);
+                      yPosition += 15;
+                      
+                      // Metadata
+                      pdf.setFontSize(10);
+                      pdf.setFont('helvetica', 'normal');
+                      pdf.text(`Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
+                      yPosition += 7;
+                      pdf.text(`Analysis Version: 2.0.0`, margin, yPosition);
+                      yPosition += 7;
+                      pdf.text(`Model: gpt-5.1-2025-11-13`, margin, yPosition);
+                      yPosition += 12;
+                      
+                      // Category Section
+                      if (categoryData) {
+                        pdf.setFillColor(240, 240, 255);
+                        pdf.rect(margin, yPosition - 5, maxWidth, 8, 'F');
+                        pdf.setFontSize(14);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text('Category Information', margin + 2, yPosition);
+                        yPosition += 12;
+                        
+                        pdf.setFontSize(10);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.text(`Category: ${categoryData.category.toUpperCase()}`, margin + 5, yPosition);
+                        yPosition += 7;
+                        pdf.text(`Product Type: ${categoryData.detected_product_type || 'N/A'}`, margin + 5, yPosition);
+                        yPosition += 7;
+                        pdf.text(`Confidence: ${categoryData.confidence_score}%`, margin + 5, yPosition);
+                        yPosition += 12;
                       }
-                    };
-                    const blob = new Blob([JSON.stringify(report, null, 2)], {
-                      type: "application/json"
-                    });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `${categoryData?.category}_analysis_${new Date().toISOString().split('T')[0]}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  leftSection={<IconCloudUpload size={18} />}
-                  variant="filled"
-                >
-                  💾 Download JSON Report
-                </Button>
-                <Button onClick={resetFlow} variant="light">
-                  Analyze Another Product
-                </Button>
-                <Button onClick={() => navigate("/my-detections")}>
-                  View My Detections
-                </Button>
-              </Group>
-            </Stack>
-          </Paper>
+                      
+                      // Product Details Section
+                      if (identificationData) {
+                        if (yPosition > pageHeight - 80) {
+                          pdf.addPage();
+                          yPosition = margin;
+                        }
+                        
+                        pdf.setFillColor(240, 255, 240);
+                        pdf.rect(margin, yPosition - 5, maxWidth, 8, 'F');
+                        pdf.setFontSize(14);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text('Product Details', margin + 2, yPosition);
+                        yPosition += 12;
+                        
+                        pdf.setFontSize(10);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.text(`Product: ${identificationData.identified_product || 'N/A'}`, margin + 5, yPosition);
+                        yPosition += 7;
+                        pdf.text(`Brand: ${identificationData.brand || 'N/A'}`, margin + 5, yPosition);
+                        yPosition += 7;
+                        if (identificationData.model) {
+                          pdf.text(`Model: ${identificationData.model}`, margin + 5, yPosition);
+                          yPosition += 7;
+                        }
+                        if (identificationData.color_variants) {
+                          pdf.text(`Color: ${identificationData.color_variants}`, margin + 5, yPosition);
+                          yPosition += 7;
+                        }
+                        pdf.text(`Condition: ${identificationData.condition_rating || 'N/A'}`, margin + 5, yPosition);
+                        yPosition += 7;
+                        if (identificationData.product_condition) {
+                          pdf.text(`Product Condition: ${identificationData.product_condition.toUpperCase()}`, margin + 5, yPosition);
+                          yPosition += 7;
+                        }
+                        if (identificationData.estimated_year) {
+                          pdf.text(`Year: ${identificationData.estimated_year}`, margin + 5, yPosition);
+                          yPosition += 7;
+                        }
+                        pdf.text(`Confidence Score: ${identificationData.confidence_score}%`, margin + 5, yPosition);
+                        yPosition += 7;
+                        if (identificationData.short_description) {
+                          const descLines = pdf.splitTextToSize(`Description: ${identificationData.short_description}`, maxWidth - 10);
+                          pdf.text(descLines, margin + 5, yPosition);
+                          yPosition += (descLines.length * 7) + 5;
+                        }
+                        yPosition += 5;
+                      }
+                      
+                      // Verification Section
+                      if (verificationData) {
+                        if (yPosition > pageHeight - 60) {
+                          pdf.addPage();
+                          yPosition = margin;
+                        }
+                        
+                        pdf.setFillColor(255, 250, 240);
+                        pdf.rect(margin, yPosition - 5, maxWidth, 8, 'F');
+                        pdf.setFontSize(14);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text('Verification Results', margin + 2, yPosition);
+                        yPosition += 12;
+                        
+                        pdf.setFontSize(10);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.text(`Status: ${verificationData.authenticity_status || 'N/A'}`, margin + 5, yPosition);
+                        yPosition += 7;
+                        pdf.text(`Confidence: ${verificationData.verification_confidence || 'N/A'}%`, margin + 5, yPosition);
+                        yPosition += 7;
+                        if (verificationData.authentication_summary) {
+                          const summaryLines = pdf.splitTextToSize(`Summary: ${verificationData.authentication_summary}`, maxWidth - 10);
+                          pdf.text(summaryLines, margin + 5, yPosition);
+                          yPosition += (summaryLines.length * 7) + 5;
+                        }
+                        yPosition += 5;
+                      }
+                      
+                      // Pricing Section
+                      if (pricingData) {
+                        if (yPosition > pageHeight - 100) {
+                          pdf.addPage();
+                          yPosition = margin;
+                        }
+                        
+                        pdf.setFillColor(240, 255, 240);
+                        pdf.rect(margin, yPosition - 5, maxWidth, 8, 'F');
+                        pdf.setFontSize(14);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text('Market Pricing', margin + 2, yPosition);
+                        yPosition += 12;
+                        
+                        // SnaptoSell Recommendation
+                        if (pricingData.SnaptoSell_suggestion) {
+                          pdf.setFontSize(12);
+                          pdf.setFont('helvetica', 'bold');
+                          pdf.text('SnaptoSell Recommendation:', margin + 5, yPosition);
+                          yPosition += 10;
+                          
+                          pdf.setFontSize(10);
+                          pdf.setFont('helvetica', 'normal');
+                          pdf.text(`Typical Resale Price: ${pricingData.SnaptoSell_suggestion.typical_resale_price || 'N/A'}`, margin + 10, yPosition);
+                          yPosition += 7;
+                          pdf.text(`Price Range: ${pricingData.SnaptoSell_suggestion.price_range || 'N/A'}`, margin + 10, yPosition);
+                          yPosition += 7;
+                          pdf.text(`Confidence: ${pricingData.SnaptoSell_suggestion.confidence || 'N/A'}`, margin + 10, yPosition);
+                          yPosition += 10;
+                        }
+                        
+                        // Market Data
+                        pdf.setFontSize(12);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text('Marketplace Data:', margin + 5, yPosition);
+                        yPosition += 10;
+                        
+                        pdf.setFontSize(10);
+                        pdf.setFont('helvetica', 'normal');
+                        Object.entries(pricingData)
+                          .filter(([key]) => key.endsWith('_market'))
+                          .forEach(([key, data]: [string, any]) => {
+                            if (data && data.average && data.sample_size > 0) {
+                              if (yPosition > pageHeight - 30) {
+                                pdf.addPage();
+                                yPosition = margin;
+                              }
+                              
+                              const marketName = key.replace('_market', '').split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                              pdf.text(`${marketName}:`, margin + 10, yPosition);
+                              yPosition += 7;
+                              pdf.text(`  Average: ${data.average}`, margin + 15, yPosition);
+                              yPosition += 7;
+                              pdf.text(`  Range: ${data.lowest} - ${data.highest}`, margin + 15, yPosition);
+                              yPosition += 7;
+                              pdf.text(`  Sample Size: ${data.sample_size} listings`, margin + 15, yPosition);
+                              yPosition += 10;
+                            }
+                          });
+                        
+                        // Overall Recommendation
+                        if (pricingData.overall_recommendation) {
+                          if (yPosition > pageHeight - 30) {
+                            pdf.addPage();
+                            yPosition = margin;
+                          }
+                          const recLines = pdf.splitTextToSize(`Recommendation: ${pricingData.overall_recommendation}`, maxWidth - 10);
+                          pdf.text(recLines, margin + 5, yPosition);
+                          yPosition += (recLines.length * 7) + 5;
+                        }
+                      }
+                      
+                      // Execution Time
+                      if (Object.keys(timeBreakdown).length > 0) {
+                        if (yPosition > pageHeight - 60) {
+                          pdf.addPage();
+                          yPosition = margin;
+                        }
+                        
+                        pdf.setFillColor(245, 245, 245);
+                        pdf.rect(margin, yPosition - 5, maxWidth, 8, 'F');
+                        pdf.setFontSize(14);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text('Execution Time Breakdown', margin + 2, yPosition);
+                        yPosition += 12;
+                        
+                        pdf.setFontSize(10);
+                        pdf.setFont('helvetica', 'normal');
+                        if (timeBreakdown.stage0) {
+                          pdf.text(`Category Detection: ${timeBreakdown.stage0.toFixed(2)}s`, margin + 5, yPosition);
+                          yPosition += 7;
+                        }
+                        if (timeBreakdown.stage1) {
+                          pdf.text(`Identification: ${timeBreakdown.stage1.toFixed(2)}s`, margin + 5, yPosition);
+                          yPosition += 7;
+                        }
+                        if (timeBreakdown.stage2) {
+                          pdf.text(`Verification: ${timeBreakdown.stage2.toFixed(2)}s`, margin + 5, yPosition);
+                          yPosition += 7;
+                        }
+                        if (timeBreakdown.stage3) {
+                          pdf.text(`Pricing: ${timeBreakdown.stage3.toFixed(2)}s`, margin + 5, yPosition);
+                          yPosition += 7;
+                        }
+                        const total = Object.values(timeBreakdown).reduce((a, b) => a + (b || 0), 0);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text(`Total: ${total.toFixed(2)}s`, margin + 5, yPosition);
+                      }
+                      
+                      // Save PDF
+                      const filename = `${categoryData?.category || 'product'}_analysis_${new Date().toISOString().split('T')[0]}.pdf`;
+                      pdf.save(filename);
+                    }}
+                    leftSection={<IconCloudUpload size={18} />}
+                    variant="filled"
+                  >
+                    📄 Download PDF Report
+                  </Button> */}
+                  <Button onClick={resetFlow} variant="light">
+                    Analyze Another Product
+                  </Button>
+                  <Button onClick={() => navigate("/my-detections")}>
+                    View My Detections
+                  </Button>
+                </Group>
+              </Stack>
+            </Paper>
           )}
         </Box>
       </Flex>
@@ -1805,22 +2304,31 @@ const DetectPage = () => {
       <Modal
         opened={showRetryModal}
         onClose={() => setShowRetryModal(false)}
-        title={<Text fw={700} size="lg">❌ Identification Issues</Text>}
+        title={
+          <Text fw={700} size="lg">
+            ❌ Identification Issues
+          </Text>
+        }
         centered
         size="lg"
       >
         <Stack gap="md">
           <Alert color="red" icon={<IconAlertCircle />}>
-            The product could not be identified clearly. Please review the issues below and upload better images.
+            The product could not be identified clearly. Please review the
+            issues below and upload better images.
           </Alert>
 
           {validationErrors.length > 0 && (
             <div>
-              <Text fw={600} mb="sm">Issues Detected:</Text>
+              <Text fw={600} mb="sm">
+                Issues Detected:
+              </Text>
               <Stack gap="xs">
                 {validationErrors.map((error, index) => (
                   <Alert key={index} color="orange" icon={<IconX />}>
-                    <Text fw={600}>{error.type.replace(/_/g, ' ').toUpperCase()}</Text>
+                    <Text fw={600}>
+                      {error.type.replace(/_/g, " ").toUpperCase()}
+                    </Text>
                     <Text size="sm">{error.message}</Text>
                   </Alert>
                 ))}
@@ -1830,7 +2338,9 @@ const DetectPage = () => {
 
           {validationSuggestions.length > 0 && (
             <div>
-              <Text fw={600} mb="sm">💡 Suggestions:</Text>
+              <Text fw={600} mb="sm">
+                💡 Suggestions:
+              </Text>
               <Stack gap="xs">
                 {validationSuggestions.map((suggestion, index) => (
                   <Group key={index} gap="xs">

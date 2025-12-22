@@ -272,6 +272,62 @@ export function addUserTextToPrompt(prompt: string, userText: string): string {
 export function getStage2Prompt(stage1Data: any, category: string): string {
   const productName = `${stage1Data.brand || ''} ${stage1Data.model || stage1Data.identified_product || ''}`.trim();
 
+  // Other/Generic Products Verification
+  if (category === 'other') {
+    const productType = stage1Data.product_type || stage1Data.identified_product || 'Unknown item';
+    const brand = stage1Data.brand || 'not visible';
+    const condition = stage1Data.condition_rating || 'unknown';
+
+    return `You are a product verification expert for generic consumer goods and household items.
+
+PRODUCT TO VERIFY:
+- Product Type: ${productType}
+- Category: ${category}
+- Brand: ${brand}
+- Condition: ${condition}
+
+EXTRACTED DETAILS FROM STAGE 1:
+${JSON.stringify(stage1Data, null, 2)}
+
+YOUR TASK:
+1. Verify the product type and category classification
+2. If brand is visible, verify brand information and typical product characteristics
+3. Check if condition assessment matches typical wear patterns for this item type
+4. Validate that product details are consistent and realistic
+5. Assess overall accuracy of identification
+
+WEB SEARCH STRATEGY:
+- Search: "${productType} ${category} product information"
+- If brand visible: Search "${brand} ${productType} official" or "${brand} ${productType} specifications"
+- Search: "${productType} typical condition assessment" or "${productType} condition guide"
+- Search: "${category} product verification" if needed
+
+VERIFICATION CHECKS:
+1. **Product Type Accuracy**: Does the identified product type match the category?
+2. **Brand Verification** (if brand visible): Does the brand actually make this type of product?
+3. **Condition Assessment**: Does the condition rating match typical wear for this item type?
+4. **Product Details Consistency**: Do material, color, dimensions make sense together?
+5. **Market Reality Check**: Is this a real product category that exists in the market?
+
+OUTPUT FORMAT (JSON only, no markdown):
+{
+  "verification_status": "Verified Accurate" | "Likely Accurate" | "Verification Uncertain" | "Possible Inaccuracies" | "Likely Inaccurate",
+  "verification_confidence": 0-100,
+  "verification_summary": "2-3 sentence summary of verification findings",
+  "product_type_verified": true | false,
+  "brand_verified": "confirmed" | "likely" | "uncertain" | "not visible" | "inconsistent",
+  "condition_assessment": "accurate" | "likely accurate" | "uncertain" | "may be inaccurate",
+  "details_consistency": "consistent" | "mostly consistent" | "some inconsistencies" | "inconsistent",
+  "verification_details": "detailed paragraph explaining verification assessment",
+  "sources_checked": ["list", "of", "sources", "consulted"],
+  "warnings": ["list", "of", "any", "concerns", "or 'none'"],
+  "recommendations": "suggestions for improving accuracy or additional verification needed"
+}
+
+Be thorough but practical. For generic products, focus on ensuring the identification is reasonable and consistent.
+Now perform the verification analysis using web search.`;
+  }
+
   if (category === 'fashion') {
     const brand = stage1Data.brand || 'Unknown';
     const brandTier = stage1Data.brand_tier || 'unknown';
@@ -425,6 +481,115 @@ CRITICAL: Use web search actively to find official information. Do not rely only
 // ═══════════════════════════════════════════════════════════
 
 export function getStage3Prompt(stage1Data: any, stage2Data: any, category: string): string {
+  // Other/Generic Products Pricing
+  if (category === 'other') {
+    const productType = stage1Data.product_type || stage1Data.identified_product || 'Unknown item';
+    const brand = stage1Data.brand || 'not visible';
+    const condition = stage1Data.condition_rating || 'unknown';
+    const material = stage1Data.material_composition || '';
+    const color = stage1Data.color_variants || '';
+    
+    // Build search query - prioritize brand if visible
+    const searchQuery = (brand && !['not visible', 'unbranded', 'unknown', ''].includes(brand.toLowerCase()))
+      ? `${brand} ${productType}`
+      : `${productType} ${category}`;
+    const searchStrategy = brand && !['not visible', 'unbranded'].includes(brand.toLowerCase()) ? 'brand-specific' : 'category-based';
+
+    return `You are a resale pricing expert for generic consumer goods and household items in the USA.
+
+PRODUCT TO PRICE:
+- Product Type: ${productType}
+- Category: ${category}
+- Brand: ${brand}
+- Condition: ${condition}
+- Material: ${material}
+- Color: ${color}
+
+VERIFICATION STATUS:
+- Verification: ${stage2Data.verification_status || 'Unknown'}
+- Confidence: ${stage2Data.verification_confidence || 0}%
+
+SEARCH STRATEGY: ${searchStrategy}
+SEARCH QUERY: "${searchQuery}"
+
+YOUR TASK:
+Research current market prices for this product on US resale marketplaces and generate pricing recommendations.
+
+PRICING LOGIC:
+1. **If brand is visible**: Search for that specific brand + product type (e.g., "Yeti insulated mug")
+2. **If brand not visible**: Search by product type and category (e.g., "insulated mug")
+3. **Mix of exact and similar**: Find exact matches when possible, also include similar items in same category
+
+WEB SEARCH STRATEGY:
+Search these marketplaces in the USA:
+
+1. **eBay.com**: Search "${searchQuery} ${condition} for sale" and "${searchQuery} sold listings"
+2. **Facebook Marketplace**: Search "${searchQuery} ${condition}" and focus on local US listings
+3. **Craigslist.org**: Search "${searchQuery} ${condition}" in major US cities (NYC, LA, Chicago, etc.)
+
+PRICING ANALYSIS:
+- Find the LOWEST price you see in listings
+- Find the HIGHEST price you see in listings
+- Calculate the MEDIAN (middle value) and AVERAGE
+- Count sample size (number of listings found)
+- Consider outliers (extremely high/low prices may be errors)
+
+PRICING FACTORS TO CONSIDER:
+- Condition impact (new = +20%, like new = +10%, good = baseline, fair = -20%, poor = -40%)
+- Brand impact (if brand visible and known, may command premium)
+- Material quality (premium materials = higher price)
+- Category typical pricing
+- Market demand and availability
+
+OUTPUT FORMAT (JSON only, no markdown):
+{
+  "pricing_searched": true,
+  "ebay_market": {
+    "lowest": "$XXX",
+    "highest": "$XXX",
+    "median": "$XXX",
+    "average": "$XXX",
+    "sample_size": number
+  },
+  "facebook_market": {
+    "lowest": "$XXX",
+    "highest": "$XXX",
+    "median": "$XXX",
+    "average": "$XXX",
+    "sample_size": number
+  },
+  "craigslist_market": {
+    "lowest": "$XXX",
+    "highest": "$XXX",
+    "median": "$XXX",
+    "average": "$XXX",
+    "sample_size": number
+  },
+  "SnaptoSell_suggestion": {
+    "typical_resale_price": "$XXX",
+    "price_range": "$XXX - $XXX",
+    "confidence": "High" | "Medium" | "Low",
+    "reasoning": "Brief explanation of pricing logic, including whether brand-specific or category-based pricing was used"
+  },
+  "market_trends": "Current market conditions for this product/category",
+  "pricing_factors": [
+    "Factor 1: explanation",
+    "Factor 2: explanation",
+    "Factor 3: explanation"
+  ],
+  "search_strategy_used": "${searchStrategy}",
+  "data_quality": "High" | "Medium" | "Low"
+}
+
+CRITICAL NOTES:
+- All prices must include $ symbol and be realistic USD prices
+- If verification confidence is low (<50%), be more conservative
+- If you cannot find enough data, note this in confidence and sample_size
+- Be conservative - better to slightly underprice than overprice for faster sales
+
+Now perform the pricing analysis using web search.`;
+  }
+
   if (category === 'fashion') {
     const brand = stage1Data.brand || 'Unknown';
     const product = stage1Data.specific_category || 'item';

@@ -8,7 +8,7 @@ import type { ActionFunctionArgs } from "react-router";
 import { getOrm } from "@/lib/server/db";
 import { ProductDetection } from "@/lib/server/entities/ProductDetection";
 import { getOpenAIClient } from "@/lib/server/utils/openaiClient";
-import { validateStage1Response, validateFashionStage1Response, extractProductSummary } from "@/lib/server/utils/validators";
+import { validateStage1Comprehensive, validateFashionStage1, extractProductSummary } from "@/lib/server/utils/validators";
 import { TimeTracker } from "@/lib/server/utils/timeTracker";
 import { getStage1Prompt } from "@/lib/server/prompts";
 import { getReasoningLevel, getVerbosityLevel, isWebSearchEnabled, getMinConfidence } from "@/config/analyzer.config";
@@ -107,41 +107,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const identificationResult = response.data;
       const executionTime = tracker.stop();
 
-      // Import comprehensive validation
-      const { validateStage1Comprehensive, validateFashionStage1 } = await import('@/lib/server/utils/validators');
-      
       // Run comprehensive validation
       const minConfidence = getMinConfidence(category as ProductCategory);
       const validation = category === 'fashion'
         ? validateFashionStage1(identificationResult, minConfidence)
         : validateStage1Comprehensive(identificationResult, minConfidence);
 
-      // If validation fails, return error with suggestions
+      // If validation fails, log warnings but still save data and return for retry modal
+      // This matches Python backend behavior where validation failures show retry option
       if (!validation.valid) {
-        console.error('Identification validation failed:', validation.errors);
-        
-        return Response.json({
-          success: false,
-          error: 'Identification validation failed',
-          data: {
-            identification: identificationResult,
-            validation: {
-              valid: false,
-              errors: validation.errors,
-              suggestions: validation.suggestions || [],
-              confidence: validation.confidence || identificationResult.confidence_score || 0
-            }
-          }
-        }, { status: 400 });
-      }
-
-      if (validation.warnings && validation.warnings.length > 0) {
-        console.warn('Identification warnings:', validation.warnings);
+        console.warn('Identification validation warnings:', validation.errors);
+        console.warn('Proceeding to save data and show retry modal to user');
       }
 
       // Extract summary
       const summary = extractProductSummary(identificationResult, category as ProductCategory);
-      console.log(`✅ Product identified: ${summary} in ${executionTime.toFixed(2)}s`);
+      console.log(`✅ Product identified: ${summary} (confidence: ${identificationResult.confidence_score}%) in ${executionTime.toFixed(2)}s`);
 
       // Update core fields in detection record
       Object.assign(detection, {
