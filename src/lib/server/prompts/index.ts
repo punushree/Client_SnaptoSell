@@ -295,6 +295,8 @@ YOUR TASK:
 3. Check if condition assessment matches typical wear patterns for this item type
 4. Validate that product details are consistent and realistic
 5. Assess overall accuracy of identification
+6. If measurements/dimensions are missing, search typical measurements for this product type and provide best estimates (note source)
+7. Retrieve original retail price if available; otherwise return "Not available"
 
 WEB SEARCH STRATEGY:
 - Search: "${productType} ${category} product information"
@@ -318,6 +320,10 @@ OUTPUT FORMAT (JSON only, no markdown):
   "brand_verified": "confirmed" | "likely" | "uncertain" | "not visible" | "inconsistent",
   "condition_assessment": "accurate" | "likely accurate" | "uncertain" | "may be inaccurate",
   "details_consistency": "consistent" | "mostly consistent" | "some inconsistencies" | "inconsistent",
+  "verification_details": "detailed paragraph explaining verification assessment",
+  "measurements": "dimensions/measurements if found, else 'N/A'",
+  "measurements_source": "image | web search | not available",
+  "original_retail_price": "$XXX (strictly pricing and no reasoning) or \"Not available\"",
   "verification_details": "detailed paragraph explaining verification assessment",
   "sources_checked": ["list", "of", "sources", "consulted"],
   "warnings": ["list", "of", "any", "concerns", "or 'none'"],
@@ -533,6 +539,15 @@ PRICING ANALYSIS:
 - Calculate the MEDIAN (middle value) and AVERAGE
 - Count sample size (number of listings found)
 - Consider outliers (extremely high/low prices may be errors)
+- Determine pricing strategy based on depreciation vs appreciation:
+  * Depreciating (most generic items unless collectible): price to sell fast and recover value early
+  * Appreciating (collectibles/rare items): protect value, allow scarcity
+
+PLATFORM RECOMMENDATIONS:
+- Suggest 2-3 best platforms with a one-line reason (USA focus: eBay, Facebook Marketplace, Craigslist; add others only if relevant)
+
+SEASONAL GUIDANCE:
+- Provide brief holiday vs off-season guidance for USA
 
 PRICING FACTORS TO CONSIDER:
 - Condition impact (new = +20%, like new = +10%, good = baseline, fair = -20%, poor = -40%)
@@ -571,6 +586,14 @@ OUTPUT FORMAT (JSON only, no markdown):
     "confidence": "High" | "Medium" | "Low",
     "reasoning": "Brief explanation of pricing logic, including whether brand-specific or category-based pricing was used"
   },
+  "original_retail_price": "$XXX or \"Not available\"",
+  "pricing_strategy": "Sell-fast strategy for depreciating items OR value-protection for appreciating items",
+  "platform_recommendations": [
+    {"platform": "eBay", "reason": "High demand for this category"},
+    {"platform": "Facebook Marketplace", "reason": "Local quick sales"},
+    {"platform": "Craigslist", "reason": "Local bulk/low-fee listings"}
+  ],
+  "seasonal_pricing_guidance": "Holiday vs off-season note for USA",
   "market_trends": "Current market conditions for this product/category",
   "pricing_factors": [
     "Factor 1: explanation",
@@ -586,6 +609,8 @@ CRITICAL NOTES:
 - If verification confidence is low (<50%), be more conservative
 - If you cannot find enough data, note this in confidence and sample_size
 - Be conservative - better to slightly underprice than overprice for faster sales
+- If original retail price is unknown, set "Not available"
+- Always include pricing_strategy, platform_recommendations, and seasonal_pricing_guidance
 
 Now perform the pricing analysis using web search.`;
   }
@@ -640,6 +665,18 @@ CONDITION ADJUSTMENTS:
 - Good: 40-60% of category guideline
 - Fair: 25-40% of category guideline
 
+PRICING STRATEGY:
+- Determine if item appreciates (luxury/collectible) or depreciates (fast fashion)
+- For appreciating items: value-protection approach, allow scarcity to work
+- For depreciating items: sell-fast approach
+
+PLATFORM RECOMMENDATIONS:
+- Suggest 2-3 best platforms with one-line reasons
+- Examples: Poshmark (strong fashion resale demand), Depop (trendy/vintage), eBay (broad reach)
+
+SEASONAL GUIDANCE:
+- Holiday vs off-season pricing note for USA
+
 OUTPUT FORMAT (strict JSON, no markdown):
 {
   "poshmark_market": {
@@ -672,6 +709,14 @@ OUTPUT FORMAT (strict JSON, no markdown):
     "average": "$XX",
     "sample_size": "estimated based on knowledge"
   },
+  "original_retail_price": "$XXX or \"Not available\"",
+  "pricing_strategy": "Value-protection if appreciating / sell-fast if depreciating",
+  "platform_recommendations": [
+    {"platform": "Poshmark", "reason": "Strong fashion resale demand"},
+    {"platform": "Depop", "reason": "Trendy/vintage audience"},
+    {"platform": "eBay", "reason": "Broad reach and sold listings data"}
+  ],
+  "seasonal_pricing_guidance": "Holiday vs off-season note for USA",
   "overall_recommendation": "Based on brand tier, condition, and typical resale patterns, this item should be priced in the $XX-$XX range. [Explain reasoning based on factors above]"
 }
 
@@ -719,6 +764,17 @@ DEPRECIATION EXAMPLES:
 - 2021 device: ~25-40% of retail
 - 2020 or older: ~15-30% of retail
 
+PRICING STRATEGY:
+- Electronics are depreciating assets: price to sell fast and recover value early
+- Avoid overpricing - better to sell quickly than wait for marginally higher price
+
+PLATFORM RECOMMENDATIONS:
+- Suggest 2-3 best platforms for this item with a one-line reason each
+- Focus on USA marketplaces (eBay, Facebook Marketplace) and add others only if clearly relevant
+
+SEASONAL GUIDANCE:
+- Provide brief holiday vs off-season guidance for USA
+
 OUTPUT FORMAT (strict JSON, no markdown):
 {
   "facebook_market": {
@@ -738,7 +794,15 @@ OUTPUT FORMAT (strict JSON, no markdown):
     "price_range": "$XXX-$XXX",
     "confidence": "high|medium|low",
     "pricing_notes": "Explain pricing based on: estimated retail price, year, depreciation rate, condition adjustment, and specs. Be specific about calculations."
-  }
+  },
+  "original_retail_price": "$XXX or \"Not available\"",
+  "pricing_strategy": "Sell-fast strategy for depreciating items (electronics lose value quickly)",
+  "platform_recommendations": [
+    {"platform": "eBay", "reason": "High demand for this category"},
+    {"platform": "Facebook Marketplace", "reason": "Local quick sales"},
+    {"platform": "Another", "reason": "Optional if relevant"}
+  ],
+  "seasonal_pricing_guidance": "Holiday vs off-season note for USA"
 }
 
 Provide realistic pricing based on your electronics market knowledge and depreciation patterns.`;

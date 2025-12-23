@@ -1,7 +1,7 @@
 /**
  * GET /api/detect/[uuid]
  * 
- * Returns a single product detection by UUID
+ * Returns a single product detection by UUID with complete metadata
  * Only returns the detection if it belongs to the currently logged-in user
  */
 
@@ -9,6 +9,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { getOrm } from "@/lib/server/db";
 import { ProductDetection } from "@/lib/server/entities/ProductDetection";
 import { getCurrentUserId } from "@/lib/server/auth/getSession";
+import { getFullProductData } from "@/lib/server/services/metadataService";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   // Only accept GET requests
@@ -37,7 +38,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     const orm = await getOrm();
     const em = orm.em.fork();
 
-    // Find the detection
+    // Find the detection (verify ownership)
     // If authenticated: only find detections that belong to the user
     // If guest: allow access to guest detections (userId is null)
     let detection;
@@ -63,40 +64,37 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       );
     }
 
-    // Return the detection data with all images
+    // Get full product data including all metadata
+    const fullData = await getFullProductData(em, uuid);
+
+    // Add additional product-specific fields only if they don't already exist in fullData
+    // This prevents overwriting metadata with null entity values
+    const completeData = {
+      ...fullData,
+      // Only add entity fields if they don't exist in metadata
+      ...(detection.size && !fullData.size && { size: detection.size }),
+      ...(detection.material_composition && !fullData.material_composition && { material_composition: detection.material_composition }),
+      ...(detection.storage && !fullData.storage && { storage: detection.storage }),
+      ...(detection.ram && !fullData.ram && { ram: detection.ram }),
+      ...(detection.processor && !fullData.processor && { processor: detection.processor }),
+      ...(detection.gpu && !fullData.gpu && { gpu: detection.gpu }),
+      ...(detection.carrier && !fullData.carrier && { carrier: detection.carrier }),
+      ...(detection.connectivity && !fullData.connectivity && { connectivity: detection.connectivity }),
+      ...(detection.distinctive_features && !fullData.distinctive_features && { distinctive_features: detection.distinctive_features }),
+      ...(detection.possible_confusion && !fullData.possible_confusion && { possible_confusion: detection.possible_confusion }),
+      ...(detection.clarity_feedback && !fullData.clarity_feedback && { clarity_feedback: detection.clarity_feedback }),
+      ...(detection.condition_details && !fullData.condition_details && { condition_details: detection.condition_details }),
+      ...(detection.model_variant && !fullData.model_variant && { model_variant: detection.model_variant }),
+      // Always include these user/system fields
+      userConfirmed: detection.userConfirmed,
+      confirmedAt: detection.confirmedAt,
+      errorMessage: detection.errorMessage,
+    };
+
+    // Return the detection data with all metadata
     return Response.json({
       success: true,
-      data: {
-        uuid: detection.uuid,
-        status: detection.status,
-        inputDescription: detection.inputDescription,
-        inputImages: detection.inputImages || [],
-        identified_product: detection.identified_product,
-        brand: detection.brand,
-        color_variants: detection.color_variants,
-        size: detection.size,
-        material_composition: detection.material_composition,
-        distinctive_features: detection.distinctive_features,
-        possible_confusion: detection.possible_confusion,
-        clarity_feedback: detection.clarity_feedback,
-        condition_rating: detection.condition_rating,
-        condition_details: detection.condition_details,
-        estimated_year: detection.estimated_year,
-        short_description: detection.short_description,
-        storage: detection.storage,
-        model: detection.model,
-        model_variant: detection.model_variant,
-        carrier: detection.carrier,
-        connectivity: detection.connectivity,
-        ram: detection.ram,
-        processor: detection.processor,
-        gpu: detection.gpu,
-        userConfirmed: detection.userConfirmed,
-        confirmedAt: detection.confirmedAt,
-        errorMessage: detection.errorMessage,
-        createdAt: detection.createdAt,
-        updatedAt: detection.updatedAt,
-      },
+      data: completeData,
     });
 
   } catch (error) {

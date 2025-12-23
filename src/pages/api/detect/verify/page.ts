@@ -82,11 +82,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       
       const client = getOpenAIClient();
       const response = await client.callAndParse<{
-        authenticity_status: string;
+        authenticity_status?: string; // Fashion category
+        verification_status?: string; // Electronics/other categories
         verification_confidence: number;
         specs_match: boolean;
-        authenticity_warnings: string[];
-        verification_summary: string;
+        authenticity_warnings?: string[];
+        warnings?: string[]; // Electronics uses "warnings" instead of "authenticity_warnings"
+        verification_summary?: string;
+        authentication_summary?: string;
       }>({
         prompt,
         webSearch: isWebSearchEnabled(stageKey as any),
@@ -125,15 +128,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         console.warn('Verification warnings:', validation.warnings);
       }
 
-      console.log(`✅ Verification complete: ${verificationResult.authenticity_status} (${verificationResult.verification_confidence}% confidence) in ${executionTime.toFixed(2)}s`);
+      console.log(`✅ Verification complete: ${verificationResult.authenticity_status || verificationResult.verification_status} (${verificationResult.verification_confidence}% confidence) in ${executionTime.toFixed(2)}s`);
 
       // Update detection record with verification data (core fields)
+      // Handle both authenticity_status (fashion) and verification_status (electronics)
       Object.assign(detection, {
-        authenticity_status: verificationResult.authenticity_status,
+        authenticity_status: verificationResult.authenticity_status || verificationResult.verification_status,
         verification_confidence: verificationResult.verification_confidence,
         specs_match: verificationResult.specs_match,
-        authenticity_warnings: JSON.stringify(verificationResult.authenticity_warnings || []),
-        verification_summary: verificationResult.verification_summary,
+        authenticity_warnings: JSON.stringify(verificationResult.authenticity_warnings || verificationResult.warnings || []),
+        verification_summary: verificationResult.verification_summary || verificationResult.authentication_summary,
         status: 'verified' as const,
         updatedAt: new Date()
       });
@@ -143,7 +147,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       // Store any additional verification metadata
       // Extract verification-specific fields that aren't core fields
       const verificationMetadata: Record<string, any> = {};
-      const coreVerificationFields = ['authenticity_status', 'verification_confidence', 'specs_match', 'authenticity_warnings', 'verification_summary'];
+      const coreVerificationFields = [
+        'authenticity_status', 
+        'verification_status', // Electronics category uses this
+        'verification_confidence', 
+        'specs_match', 
+        'authenticity_warnings', 
+        'warnings', // Electronics uses this
+        'verification_summary',
+        'authentication_summary', // Fashion uses this
+      ];
       
       Object.keys(verificationResult).forEach(key => {
         if (!coreVerificationFields.includes(key)) {

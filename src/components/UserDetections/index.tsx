@@ -1,10 +1,10 @@
 /**
  * UserDetections Component
- * Displays all product detections for the currently logged-in user
- * Only shows detections that belong to the authenticated user
+ * Displays all product detections for the currently logged-in user in a list view
+ * Navigates to individual detection detail page instead of showing modal
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Container,
   Paper,
@@ -16,12 +16,12 @@ import {
   Alert,
   Box,
   Image,
-  SimpleGrid,
-  Card,
   Badge,
   Loader,
   Center,
-  Modal,
+  Card,
+  Grid,
+  ActionIcon,
   Divider,
 } from "@mantine/core";
 import {
@@ -29,94 +29,53 @@ import {
   IconCheck,
   IconX,
   IconClock,
-  IconPhoto,
+  IconArrowRight,
+  IconRefresh,
+  IconPackage,
+  IconCalendar,
 } from "@tabler/icons-react";
-import { authClient } from "@/lib/client/auth";
-import { useNavigate } from "react-router";
+import { useNavigate, useRevalidator } from "react-router";
 
 interface Detection {
   uuid: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'verified' | 'failed' | 'identified';
+  category?: string;
   inputDescription: string;
   identified_product?: string;
   brand?: string;
+  model?: string;
   color_variants?: string;
-  size?: string;
   condition_rating?: string;
   estimated_year?: string;
   short_description?: string;
-  storage?: string;
-  model?: string;
-  model_variant?: string;
-  carrier?: string;
-  connectivity?: string;
-  ram?: string;
-  processor?: string;
-  gpu?: string;
-  userConfirmed: boolean;
-  confirmedAt?: string;
+  categoryConfidence?: number;
+  confidence_score?: number;
   createdAt: string;
   updatedAt: string;
   inputImages: string[];
   imageCount: number;
 }
 
-const UserDetections = () => {
-  const [detections, setDetections] = useState<Detection[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedDetection, setSelectedDetection] = useState<Detection | null>(null);
-  const { data: session, isPending: sessionPending } = authClient.useSession();
+interface UserDetectionsProps {
+  detections: Detection[];
+}
+
+const UserDetections = ({ detections }: UserDetectionsProps) => {
   const navigate = useNavigate();
-
-  // Check if user is logged in
-  const isLoggedIn = !sessionPending && session?.user;
-
-  useEffect(() => {
-    if (sessionPending) return; // Wait for session to load
-
-    if (!isLoggedIn) {
-      setError("Please sign in to view your detections.");
-      setLoading(false);
-      return;
-    }
-
-    fetchDetections();
-  }, [isLoggedIn, sessionPending]);
-
-  const fetchDetections = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/detect/list');
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch detections');
-      }
-
-      if (result.success) {
-        setDetections(result.data || []);
-      } else {
-        throw new Error(result.error || 'Failed to fetch detections');
-      }
-    } catch (err) {
-      console.error('Error fetching detections:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load detections');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const revalidator = useRevalidator();
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
         return 'green';
-      case 'processing':
+      case 'verified':
+        return 'cyan';
+      case 'identified':
         return 'blue';
-      case 'pending':
+      case 'processing':
         return 'yellow';
+      case 'pending':
+        return 'gray';
       case 'failed':
         return 'red';
       default:
@@ -128,6 +87,8 @@ const UserDetections = () => {
     switch (status) {
       case 'completed':
         return <IconCheck size={16} />;
+      case 'verified':
+      case 'identified':
       case 'processing':
         return <IconClock size={16} />;
       case 'failed':
@@ -151,239 +112,108 @@ const UserDetections = () => {
     }
   };
 
-  if (sessionPending) {
-    return (
-      <Center py="xl">
-        <Loader size="lg" />
-      </Center>
-    );
-  }
-
-  if (!isLoggedIn) {
-    return (
-      <Container size="md" py="xl">
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Authentication Required"
-          color="yellow"
-          mb="md"
-        >
-          Please sign in to view your product detections.
-        </Alert>
-        <Group justify="center">
-          <Button component="a" href="/sign-in">
-            Sign In
-          </Button>
-        </Group>
-      </Container>
-    );
-  }
-
-  if (loading) {
-    return (
-      <Center py="xl">
-        <Stack align="center" gap="md">
-          <Loader size="lg" />
-          <Text c="dimmed">Loading your detections...</Text>
-        </Stack>
-      </Center>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container size="md" py="xl">
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error"
-          color="red"
-          mb="md"
-        >
-          {error}
-        </Alert>
-        <Group justify="center">
-          <Button onClick={fetchDetections}>Retry</Button>
-        </Group>
-      </Container>
-    );
-  }
-
-  if (detections.length === 0) {
-    return (
-      <Container size="md" py="xl">
-        <Paper p="xl" radius="md" withBorder>
-          <Stack align="center" gap="md">
-            <IconPhoto size={48} color="var(--mantine-color-gray-5)" />
-            <Title order={3}>No Detections Yet</Title>
-            <Text c="dimmed" ta="center">
-              You haven't uploaded any product detections yet. Start by uploading images
-              to detect and analyze products.
-            </Text>
-            <Button onClick={() => navigate('/detect')}>
-              Start Detection
-            </Button>
-          </Stack>
-        </Paper>
-      </Container>
-    );
-  }
+  const getCategoryIcon = (category?: string) => {
+    return <IconPackage size={18} />;
+  };
 
   return (
-    // <Container size="xl" py="xl">
-    <Container size="auto" style={{ maxWidth: "1420px" }}>
-      <Group justify="space-between" mb="xl">
-        <div>
-          <Title order={2}>My Product Detections</Title>
-          <Text c="dimmed" size="sm" mt="xs">
-            {detections.length} {detections.length === 1 ? 'detection' : 'detections'} found
-          </Text>
-        </div>
-        <Button onClick={() => navigate('/detect')}>
-          New Detection
-        </Button>
-      </Group>
+    <Container size="xl" py="xl">
+      <Stack gap="xl">
+        {/* Header */}
+        <Group justify="space-between" align="center">
+          <div>
+            <Title order={1}>My Detections</Title>
+            <Text c="dimmed" mt="xs">
+              View and manage all your product analyses
+            </Text>
+          </div>
+          <Group>
+            <Button
+              leftSection={<IconRefresh size={18} />}
+              variant="light"
+              onClick={() => revalidator.revalidate()}
+              loading={revalidator.state === 'loading'}
+            >
+              Refresh
+            </Button>
+            <Button
+              onClick={() => navigate('/detect')}
+              variant="filled"
+            >
+              New Detection
+            </Button>
+          </Group>
+        </Group>
 
-      <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-        {detections.map((detection) => (
-          <Card
-            key={detection.uuid}
-            shadow="sm"
-            padding="lg"
-            radius="md"
-            withBorder
-            style={{ cursor: 'pointer' }}
-            onClick={() => setSelectedDetection(detection)}
-          >
-            <Stack gap="sm">
-              {/* Status Badge */}
-              <Group justify="space-between" align="flex-start">
-                <Badge
-                  color={getStatusColor(detection.status)}
-                  leftSection={getStatusIcon(detection.status)}
-                  variant="light"
-                >
-                  {detection.status}
-                </Badge>
-                {detection.userConfirmed && (
-                  <Badge color="green" variant="light" leftSection={<IconCheck size={12} />}>
-                    Confirmed
-                  </Badge>
-                )}
-              </Group>
+        {/* Stats */}
+        <Grid>
+          <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Card withBorder p="md">
+              <Text size="sm" c="dimmed" mb="xs">Total Detections</Text>
+              <Text size="xl" fw={700}>{detections.length}</Text>
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Card withBorder p="md">
+              <Text size="sm" c="dimmed" mb="xs">Completed</Text>
+              <Text size="xl" fw={700} c="green">
+                {detections.filter(d => d.status === 'completed').length}
+              </Text>
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Card withBorder p="md">
+              <Text size="sm" c="dimmed" mb="xs">In Progress</Text>
+              <Text size="xl" fw={700} c="blue">
+                {detections.filter(d => ['processing', 'verified', 'identified'].includes(d.status)).length}
+              </Text>
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Card withBorder p="md">
+              <Text size="sm" c="dimmed" mb="xs">Failed</Text>
+              <Text size="xl" fw={700} c="red">
+                {detections.filter(d => d.status === 'failed').length}
+              </Text>
+            </Card>
+          </Grid.Col>
+        </Grid>
 
-              {/* Product Image Preview */}
-              {detection.inputImages && detection.inputImages.length > 0 && (
-                <Box
-                  style={{
-                    width: '100%',
-                    height: 200,
-                    borderRadius: 8,
-                    overflow: 'hidden',
-                    backgroundColor: 'var(--mantine-color-gray-1)',
-                  }}
-                >
-                  <Image
-                    src={detection.inputImages[0]}
-                    alt={detection.identified_product || 'Product image'}
-                    fit="cover"
-                    style={{ width: '100%', height: '100%' }}
-                  />
-                </Box>
-              )}
-
-              {/* Product Info */}
-              <div>
-                <Text fw={600} size="lg" lineClamp={1}>
-                  {detection.identified_product || detection.inputDescription || 'Unidentified Product'}
-                </Text>
-                {detection.brand && (
-                  <Text size="sm" c="dimmed" mt={4}>
-                    {detection.brand}
+        {/* Detections List */}
+        {detections.length === 0 ? (
+          <Paper shadow="sm" p="xl" withBorder>
+            <Center>
+              <Stack align="center" gap="md">
+                <IconPackage size={64} stroke={1.5} color="var(--mantine-color-gray-5)" />
+                <div style={{ textAlign: 'center' }}>
+                  <Text fw={600} size="lg">No detections yet</Text>
+                  <Text c="dimmed" size="sm" mt="xs">
+                    Start by analyzing your first product
                   </Text>
-                )}
-                {detection.model && (
-                  <Text size="sm" c="dimmed">
-                    {detection.model}
-                  </Text>
-                )}
-              </div>
-
-              {/* Additional Info */}
-              <Group gap="xs" mt="auto">
-                <Text size="xs" c="dimmed">
-                  <IconPhoto size={12} style={{ display: 'inline', marginRight: 4 }} />
-                  {detection.imageCount} {detection.imageCount === 1 ? 'image' : 'images'}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  {formatDate(detection.createdAt)}
-                </Text>
-              </Group>
-
-              {/* Quick Details */}
-              {(detection.storage || detection.color_variants || detection.condition_rating) && (
-                <Group gap="xs" mt="xs">
-                  {/* {detection.storage && (
-                    <Badge size="sm" variant="outline">
-                      {detection.storage}
-                    </Badge>
-                  )}
-                  {detection.color_variants && (
-                    <Badge size="sm" variant="outline">
-                      {detection.color_variants}
-                    </Badge>
-                  )} */}
-                  {detection.condition_rating && (
-                    <Badge size="sm" variant="outline" color="orange">
-                      Condition: {detection.condition_rating}
-                    </Badge>
-                  )}
-                </Group>
-              )}
-            </Stack>
-          </Card>
-        ))}
-      </SimpleGrid>
-
-      {/* Detail Modal */}
-      <Modal
-        opened={!!selectedDetection}
-        onClose={() => setSelectedDetection(null)}
-        title={
-          <Text fw={600} size="lg">
-            {selectedDetection?.identified_product || 'Product Details'}
-          </Text>
-        }
-        size="lg"
-        centered
-      >
-        {selectedDetection && (
+                </div>
+                <Button onClick={() => navigate('/detect')} mt="md">
+                  Start Detection
+                </Button>
+              </Stack>
+            </Center>
+          </Paper>
+        ) : (
           <Stack gap="md">
-            {/* Status */}
-            <Group>
-              <Badge
-                color={getStatusColor(selectedDetection.status)}
-                leftSection={getStatusIcon(selectedDetection.status)}
-                size="lg"
+            {detections.map((detection) => (
+              <Card
+                key={detection.uuid}
+                shadow="sm"
+                padding="lg"
+                withBorder
+                style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                onClick={() => navigate(`/detection/${detection.uuid}`)}
               >
-                {selectedDetection.status}
-              </Badge>
-              {selectedDetection.userConfirmed && (
-                <Badge color="green" size="lg" leftSection={<IconCheck size={14} />}>
-                  User Confirmed
-                </Badge>
-              )}
-            </Group>
-
-            {/* Images */}
-            {selectedDetection.inputImages && selectedDetection.inputImages.length > 0 && (
-              <div>
-                <Text fw={600} mb="sm">
-                  Uploaded Images ({selectedDetection.inputImages.length})
-                </Text>
-                <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="sm">
-                  {selectedDetection.inputImages.map((img, idx) => (
+                <Grid align="center">
+                  {/* Image Preview */}
+                  <Grid.Col span={{ base: 12, sm: 3, md: 2 }}>
                     <Box
-                      key={idx}
                       style={{
                         width: '100%',
                         height: 120,
@@ -392,113 +222,110 @@ const UserDetections = () => {
                         backgroundColor: 'var(--mantine-color-gray-1)',
                       }}
                     >
-                      <Image
-                        src={img}
-                        alt={`Image ${idx + 1}`}
-                        fit="cover"
-                        style={{ width: '100%', height: '100%' }}
-                      />
+                      {detection.inputImages && detection.inputImages.length > 0 ? (
+                        <Image
+                          src={detection.inputImages[0]}
+                          alt="Product"
+                          fit="cover"
+                          style={{ width: '100%', height: '100%' }}
+                        />
+                      ) : (
+                        <Center h="100%">
+                          <IconPackage size={48} stroke={1} color="var(--mantine-color-gray-4)" />
+                        </Center>
+                      )}
                     </Box>
-                  ))}
-                </SimpleGrid>
-              </div>
-            )}
+                    {detection.inputImages && detection.inputImages.length > 1 && (
+                      <Text size="xs" c="dimmed" mt="xs" ta="center">
+                        +{detection.inputImages.length - 1} more
+                      </Text>
+                    )}
+                  </Grid.Col>
 
-            <Divider />
+                  {/* Product Info */}
+                  <Grid.Col span={{ base: 12, sm: 6, md: 7 }}>
+                    <Stack gap="xs">
+                      <div>
+                        <Group gap="xs" mb="xs">
+                          <Badge
+                            color={getStatusColor(detection.status)}
+                            leftSection={getStatusIcon(detection.status)}
+                            size="sm"
+                          >
+                            {detection.status}
+                          </Badge>
+                          {detection.category && (
+                            <Badge variant="light" leftSection={getCategoryIcon(detection.category)} size="sm">
+                              {detection.category}
+                            </Badge>
+                          )}
+                        </Group>
+                        <Text fw={600} size="lg" lineClamp={1}>
+                          {detection.identified_product || detection.inputDescription || 'Untitled Detection'}
+                        </Text>
+                      </div>
 
-            {/* Product Details */}
-            <div>
-              <Text fw={600} mb="sm">
-                Product Information
-              </Text>
-              <SimpleGrid cols={2} spacing="xs">
-                {selectedDetection.brand && (
-                  <div>
-                    <Text size="sm" c="dimmed">Brand</Text>
-                    <Text fw={500}>{selectedDetection.brand}</Text>
-                  </div>
-                )}
-                {selectedDetection.model && (
-                  <div>
-                    <Text size="sm" c="dimmed">Model</Text>
-                    <Text fw={500}>{selectedDetection.model}</Text>
-                  </div>
-                )}
-                {selectedDetection.storage && (
-                  <div>
-                    <Text size="sm" c="dimmed">Storage</Text>
-                    <Text fw={500}>{selectedDetection.storage}</Text>
-                  </div>
-                )}
-                {selectedDetection.color_variants && (
-                  <div>
-                    <Text size="sm" c="dimmed">Color</Text>
-                    <Text fw={500}>{selectedDetection.color_variants}</Text>
-                  </div>
-                )}
-                {selectedDetection.size && (
-                  <div>
-                    <Text size="sm" c="dimmed">Size</Text>
-                    <Text fw={500}>{selectedDetection.size}</Text>
-                  </div>
-                )}
-                {selectedDetection.condition_rating && (
-                  <div>
-                    <Text size="sm" c="dimmed">Condition</Text>
-                    <Text fw={500}>{selectedDetection.condition_rating}</Text>
-                  </div>
-                )}
-                {selectedDetection.estimated_year && (
-                  <div>
-                    <Text size="sm" c="dimmed">Year</Text>
-                    <Text fw={500}>{selectedDetection.estimated_year}</Text>
-                  </div>
-                )}
-                {selectedDetection.carrier && (
-                  <div>
-                    <Text size="sm" c="dimmed">Carrier</Text>
-                    <Text fw={500}>{selectedDetection.carrier}</Text>
-                  </div>
-                )}
-              </SimpleGrid>
-            </div>
+                      <Group gap="lg">
+                        {detection.brand && (
+                          <div>
+                            <Text size="xs" c="dimmed">Brand</Text>
+                            <Text size="sm" fw={500}>{detection.brand}</Text>
+                          </div>
+                        )}
+                        {detection.model && (
+                          <div>
+                            <Text size="xs" c="dimmed">Model</Text>
+                            <Text size="sm" fw={500}>{detection.model}</Text>
+                          </div>
+                        )}
+                        {detection.condition_rating && (
+                          <div>
+                            <Text size="xs" c="dimmed">Condition</Text>
+                            <Text size="sm" fw={500}>{detection.condition_rating}</Text>
+                          </div>
+                        )}
+                      </Group>
 
-            {selectedDetection.short_description && (
-              <div>
-                <Text fw={600} mb="sm">
-                  Description
-                </Text>
-                <Text size="sm">{selectedDetection.short_description}</Text>
-              </div>
-            )}
+                      {detection.short_description && (
+                        <Text size="sm" c="dimmed" lineClamp={2}>
+                          {detection.short_description}
+                        </Text>
+                      )}
+                    </Stack>
+                  </Grid.Col>
 
-            {selectedDetection.inputDescription && (
-              <div>
-                <Text fw={600} mb="sm">
-                  User Description
-                </Text>
-                <Text size="sm" c="dimmed">{selectedDetection.inputDescription}</Text>
-              </div>
-            )}
-
-            <Divider />
-
-            {/* Timestamps */}
-            <Group gap="md">
-              <div>
-                <Text size="xs" c="dimmed">Created</Text>
-                <Text size="sm">{formatDate(selectedDetection.createdAt)}</Text>
-              </div>
-              {selectedDetection.confirmedAt && (
-                <div>
-                  <Text size="xs" c="dimmed">Confirmed</Text>
-                  <Text size="sm">{formatDate(selectedDetection.confirmedAt)}</Text>
-                </div>
-              )}
-            </Group>
+                  {/* Meta Info */}
+                  <Grid.Col span={{ base: 12, sm: 3, md: 3 }}>
+                    <Stack gap="xs" align="flex-end">
+                      <Group gap="xs">
+                        <IconCalendar size={14} />
+                        <Text size="xs" c="dimmed">
+                          {formatDate(detection.createdAt)}
+                        </Text>
+                      </Group>
+                      {detection.confidence_score !== undefined && (
+                        <Badge color="blue" variant="light" size="sm">
+                          {detection.confidence_score}% confidence
+                        </Badge>
+                      )}
+                      <ActionIcon
+                        variant="light"
+                        size="lg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/detection/${detection.uuid}`);
+                        }}
+                      >
+                        <IconArrowRight size={18} />
+                      </ActionIcon>
+                    </Stack>
+                  </Grid.Col>
+                </Grid>
+              </Card>
+            ))}
           </Stack>
         )}
-      </Modal>
+      </Stack>
     </Container>
   );
 };

@@ -110,6 +110,7 @@ const AIMarketplacePricing = ({ uuid, category, onPricingComplete }: AIMarketpla
       mercari_market: "Mercari",
       facebook_market: "Facebook Marketplace",
       ebay_market: "eBay",
+      craigslist_market: "Craigslist",
     };
     return names[key] || key;
   };
@@ -118,13 +119,14 @@ const AIMarketplacePricing = ({ uuid, category, onPricingComplete }: AIMarketpla
     const icons: Record<string, string> = {
       poshmark_market: "👗",
       depop_market: "🛍️",
-      ebay_fashion_market: "🛒",
+      ebay_fashion_market: "🏷️",
       thredup_market: "♻️",
-      mercari_market: "🏷️",
-      facebook_market: "📘",
+      mercari_market: "📦",
+      facebook_market: "👥",
       ebay_market: "🛒",
+      craigslist_market: "🛋️",
     };
-    return icons[key] || "🛍️";
+    return icons[key] || "🏪";
   };
 
   if (isLoading) {

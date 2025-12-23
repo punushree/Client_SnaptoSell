@@ -87,6 +87,10 @@ interface VerificationData {
   retail_price_reference?: string;
   market_availability?: string;
   recommendations?: string;
+  // New fields for 'other' category
+  measurements?: string;
+  measurements_source?: string;
+  original_retail_price?: string;
   // Legacy fields for backwards compatibility
   specs_match?: boolean;
   authenticity_warnings?: string[];
@@ -1790,6 +1794,39 @@ const DetectPage = () => {
                           </Text>
                         </Group>
                       )}
+                      {/* Additional metadata fields */}
+                      {identificationData.size && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Size:
+                          </Text>
+                          <Text fw={500}>{identificationData.size}</Text>
+                        </Group>
+                      )}
+                      {identificationData.material_composition && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Material:
+                          </Text>
+                          <Text fw={500}>{identificationData.material_composition}</Text>
+                        </Group>
+                      )}
+                      {identificationData.storage && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            Storage:
+                          </Text>
+                          <Text fw={500}>{identificationData.storage}</Text>
+                        </Group>
+                      )}
+                      {identificationData.ram && (
+                        <Group justify="apart">
+                          <Text size="sm" c="dimmed">
+                            RAM:
+                          </Text>
+                          <Text fw={500}>{identificationData.ram}</Text>
+                        </Group>
+                      )}
                       {identificationData.short_description && (
                         <div>
                           <Text size="sm" c="dimmed" mb="xs">
@@ -1869,6 +1906,43 @@ const DetectPage = () => {
                           </Text>
                         </div>
                       )}
+                      {/* Measurements (for 'other' category) */}
+                      {verificationData.measurements && verificationData.measurements !== 'N/A' && (
+                        <div>
+                          <Text size="sm" c="dimmed" mb="xs">
+                            Measurements:
+                          </Text>
+                          <Text size="sm">
+                            {verificationData.measurements}
+                          </Text>
+                          {verificationData.measurements_source && (
+                            <Text size="xs" c="dimmed" mt="xs">
+                              Source: {verificationData.measurements_source}
+                            </Text>
+                          )}
+                        </div>
+                      )}
+                      {/* Additional verification details */}
+                      {verificationData.authenticity_details && (
+                        <div>
+                          <Text size="sm" c="dimmed" mb="xs">
+                            Details:
+                          </Text>
+                          <Text size="sm">
+                            {verificationData.authenticity_details}
+                          </Text>
+                        </div>
+                      )}
+                      {verificationData.recommendations && (
+                        <div>
+                          <Text size="sm" c="dimmed" mb="xs">
+                            Recommendations:
+                          </Text>
+                          <Text size="sm">
+                            {verificationData.recommendations}
+                          </Text>
+                        </div>
+                      )}
                     </Stack>
                   </Card>
                 )}
@@ -1897,7 +1971,19 @@ const DetectPage = () => {
                           if (!data || !data.average || data.sample_size === 0)
                             return null;
 
-                          const marketName = key
+                          // Map marketplace keys to proper names
+                          const marketplaceNames: Record<string, string> = {
+                            'poshmark_market': 'Poshmark',
+                            'depop_market': 'Depop',
+                            'ebay_fashion_market': 'eBay Fashion',
+                            'thredup_market': 'ThredUp',
+                            'mercari_market': 'Mercari',
+                            'facebook_market': 'Facebook Marketplace',
+                            'ebay_market': 'eBay',
+                            'craigslist_market': 'Craigslist',
+                          };
+
+                          const marketName = marketplaceNames[key] || key
                             .replace("_market", "")
                             .split("_")
                             .map(
@@ -1981,6 +2067,66 @@ const DetectPage = () => {
                           </Badge>
                         </Group>
                       </Card>
+                    )}
+
+                    {/* Original Retail Price */}
+                    {(pricingData.original_retail_price || 
+                      pricingData.official_price || 
+                      pricingData.retail_price_reference ||
+                      verificationData?.original_retail_price ||
+                      verificationData?.retail_price_reference) && (
+                      <Text size="sm" c="dimmed" mt="md">
+                        Original retail price: {
+                          pricingData.original_retail_price ||
+                          pricingData.official_price ||
+                          pricingData.retail_price_reference ||
+                          verificationData?.original_retail_price ||
+                          verificationData?.retail_price_reference
+                        }
+                      </Text>
+                    )}
+
+                    {/* Pricing Strategy */}
+                    {pricingData.pricing_strategy && (
+                      <Alert color="blue" mt="md" icon={<IconAlertCircle />}>
+                        <Text fw={600} size="sm" mb="xs">
+                          🎯 Pricing Strategy
+                        </Text>
+                        <Text size="sm">{pricingData.pricing_strategy}</Text>
+                      </Alert>
+                    )}
+
+                    {/* Platform Recommendations */}
+                    {pricingData.platform_recommendations && 
+                     Array.isArray(pricingData.platform_recommendations) &&
+                     pricingData.platform_recommendations.length > 0 && (
+                      <div>
+                        <Text fw={600} size="sm" mt="md" mb="xs">
+                          🛒 Platform Recommendations
+                        </Text>
+                        <Stack gap="xs">
+                          {pricingData.platform_recommendations.map((platform: any, idx: number) => (
+                            <Card key={idx} withBorder p="xs">
+                              <Text fw={500} size="sm">
+                                {platform.platform}
+                              </Text>
+                              <Text size="xs" c="dimmed">
+                                {platform.reason}
+                              </Text>
+                            </Card>
+                          ))}
+                        </Stack>
+                      </div>
+                    )}
+
+                    {/* Seasonal Pricing Guidance */}
+                    {pricingData.seasonal_pricing_guidance && (
+                      <Alert color="orange" mt="md" icon={<IconAlertCircle />}>
+                        <Text fw={600} size="sm" mb="xs">
+                          🗓️ Seasonal Pricing Guidance
+                        </Text>
+                        <Text size="sm">{pricingData.seasonal_pricing_guidance}</Text>
+                      </Alert>
                     )}
                   </Card>
                 )}
@@ -2166,6 +2312,15 @@ const DetectPage = () => {
                           pdf.text(summaryLines, margin + 5, yPosition);
                           yPosition += (summaryLines.length * 7) + 5;
                         }
+                        // Add measurements for 'other' category
+                        if (verificationData.measurements && verificationData.measurements !== 'N/A') {
+                          pdf.text(`Measurements: ${verificationData.measurements}`, margin + 5, yPosition);
+                          yPosition += 7;
+                          if (verificationData.measurements_source) {
+                            pdf.text(`  Source: ${verificationData.measurements_source}`, margin + 10, yPosition);
+                            yPosition += 7;
+                          }
+                        }
                         yPosition += 5;
                       }
                       
@@ -2238,6 +2393,64 @@ const DetectPage = () => {
                           const recLines = pdf.splitTextToSize(`Recommendation: ${pricingData.overall_recommendation}`, maxWidth - 10);
                           pdf.text(recLines, margin + 5, yPosition);
                           yPosition += (recLines.length * 7) + 5;
+                        }
+                        
+                        // Original Retail Price
+                        const originalPrice = pricingData.original_retail_price || 
+                                            pricingData.official_price || 
+                                            pricingData.retail_price_reference ||
+                                            verificationData?.original_retail_price ||
+                                            verificationData?.retail_price_reference;
+                        if (originalPrice && originalPrice !== 'Not available') {
+                          pdf.text(`Original Retail Price: ${originalPrice}`, margin + 5, yPosition);
+                          yPosition += 10;
+                        }
+                        
+                        // Pricing Strategy
+                        if (pricingData.pricing_strategy) {
+                          if (yPosition > pageHeight - 30) {
+                            pdf.addPage();
+                            yPosition = margin;
+                          }
+                          pdf.setFont('helvetica', 'bold');
+                          pdf.text('Pricing Strategy:', margin + 5, yPosition);
+                          yPosition += 7;
+                          pdf.setFont('helvetica', 'normal');
+                          const strategyLines = pdf.splitTextToSize(pricingData.pricing_strategy, maxWidth - 10);
+                          pdf.text(strategyLines, margin + 10, yPosition);
+                          yPosition += (strategyLines.length * 7) + 5;
+                        }
+                        
+                        // Platform Recommendations
+                        if (pricingData.platform_recommendations && Array.isArray(pricingData.platform_recommendations) && pricingData.platform_recommendations.length > 0) {
+                          if (yPosition > pageHeight - 50) {
+                            pdf.addPage();
+                            yPosition = margin;
+                          }
+                          pdf.setFont('helvetica', 'bold');
+                          pdf.text('Platform Recommendations:', margin + 5, yPosition);
+                          yPosition += 7;
+                          pdf.setFont('helvetica', 'normal');
+                          pricingData.platform_recommendations.forEach((platform: any) => {
+                            pdf.text(`- ${platform.platform}: ${platform.reason}`, margin + 10, yPosition);
+                            yPosition += 7;
+                          });
+                          yPosition += 5;
+                        }
+                        
+                        // Seasonal Pricing Guidance
+                        if (pricingData.seasonal_pricing_guidance) {
+                          if (yPosition > pageHeight - 30) {
+                            pdf.addPage();
+                            yPosition = margin;
+                          }
+                          pdf.setFont('helvetica', 'bold');
+                          pdf.text('Seasonal Pricing Guidance:', margin + 5, yPosition);
+                          yPosition += 7;
+                          pdf.setFont('helvetica', 'normal');
+                          const seasonalLines = pdf.splitTextToSize(pricingData.seasonal_pricing_guidance, maxWidth - 10);
+                          pdf.text(seasonalLines, margin + 10, yPosition);
+                          yPosition += (seasonalLines.length * 7) + 5;
                         }
                       }
                       

@@ -15,8 +15,8 @@
     "debug": "mikro-orm debug"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.952.0",
-    "@aws-sdk/lib-storage": "^3.952.0",
+    "@aws-sdk/client-s3": "^3.957.0",
+    "@aws-sdk/lib-storage": "^3.957.0",
     "@hono/node-server": "^1.19.7",
     "@hookform/resolvers": "^5.2.2",
     "@mantine/core": "^8.3.10",
@@ -33,17 +33,17 @@
     "@mikro-orm/reflection": "^6.6.2",
     "@react-router/node": "^7.9.6",
     "@tabler/icons-react": "^3.36.0",
-    "better-auth": "^1.4.7",
+    "better-auth": "^1.4.8",
     "dotenv": "^17.2.3",
     "hono": "^4.11.1",
     "isbot": "^5.1.32",
     "jspdf": "^3.0.4",
-    "mysql2": "^3.15.3",
-    "openai": "^6.13.0",
+    "mysql2": "^3.16.0",
+    "openai": "^6.15.0",
     "patch-package": "^8.0.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "react-hook-form": "^7.68.0",
+    "react-hook-form": "^7.69.0",
     "react-router": "^7.9.6",
     "react-router-hono-server": "^2.22.0",
     "rr-next-routes": "^0.0.10",
@@ -68,10 +68,10 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.50.0",
+    "typescript-eslint": "^8.50.1",
     "vite": "^7.3.0",
     "vite-plugin-devtools-json": "^1.0.0",
-    "vite-tsconfig-paths": "^6.0.1"
+    "vite-tsconfig-paths": "^6.0.3"
   },
   "postinstall": "patch-package"
 }

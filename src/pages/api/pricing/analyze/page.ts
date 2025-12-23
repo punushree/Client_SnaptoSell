@@ -11,7 +11,7 @@ import { ProductDetection } from "@/lib/server/entities/ProductDetection";
 import { getCurrentUserId } from "@/lib/server/auth/getSession";
 import { getOpenAIClient } from "@/lib/server/utils/openaiClient";
 import { getStage3Prompt } from "@/lib/server/prompts";
-import { getFullProductData } from "@/lib/server/services/metadataService";
+import { getFullProductData, storeProductMetadata } from "@/lib/server/services/metadataService";
 import { TimeTracker } from "@/lib/server/utils/timeTracker";
 
 interface PricingAnalyzeRequest {
@@ -117,6 +117,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const executionTime = tracker.stop();
 
     console.log(`✅ AI pricing analysis complete in ${executionTime.toFixed(2)}s`);
+
+    // Store ALL pricing data to database for future reference
+    await storeProductMetadata(em, detection, pricingResult, {
+      category: detection.category || 'other',
+      source: 'pricing'
+    });
 
     // Update detection with AI pricing summary
     detection.status = 'completed' as const;
