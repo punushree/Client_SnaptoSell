@@ -1626,21 +1626,31 @@ const DetectPage = () => {
                       </Card>
                     )}
 
-                    {/* Original Retail Price */}
+                    {/* Original Retail Price - Prominent Display */}
                     {(pricingData.original_retail_price || 
                       pricingData.official_price || 
                       pricingData.retail_price_reference ||
                       verificationData?.original_retail_price ||
                       verificationData?.retail_price_reference) && (
-                      <Text size="sm" c="dimmed" mt="md">
-                        Original retail price: {
-                          pricingData.original_retail_price ||
-                          pricingData.official_price ||
-                          pricingData.retail_price_reference ||
-                          verificationData?.original_retail_price ||
-                          verificationData?.retail_price_reference
-                        }
-                      </Text>
+                      <Card withBorder p="md" bg="gray.0" mt="md">
+                        <Group justify="space-between" align="center">
+                          <div>
+                            <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+                              Original Retail Price
+                            </Text>
+                            <Text size="xl" fw={700} c="blue" mt="xs">
+                              {pricingData.original_retail_price ||
+                                pricingData.official_price ||
+                                pricingData.retail_price_reference ||
+                                verificationData?.original_retail_price ||
+                                verificationData?.retail_price_reference}
+                            </Text>
+                          </div>
+                          <Badge size="lg" color="gray" variant="light">
+                            MSRP
+                          </Badge>
+                        </Group>
+                      </Card>
                     )}
 
                     {/* Pricing Strategy */}
