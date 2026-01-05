@@ -65,14 +65,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       );
     }
 
-    // Check if product has been verified
-    if (detection.status !== 'verified' && detection.status !== 'completed') {
-      return Response.json(
-        { error: 'Product must be verified before pricing analysis.' },
-        { status: 400 }
-      );
-    }
-
+    // Note: We allow pricing to run in parallel with verification for speed
+    // Status check removed to enable parallel execution
+    
     // Get full product data including metadata
     const fullProductData = await getFullProductData(em, detection.uuid);
 

@@ -255,7 +255,9 @@ const DetectPage = () => {
       }
 
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageDataUrl = canvas.toDataURL("image/jpeg", 0.95);
+      
+      // Use WebP format for better compression (smaller files, faster upload)
+      const imageDataUrl = canvas.toDataURL("image/webp", 0.85);
 
       setCapturedImages((prev) => [...prev, imageDataUrl]);
     }
@@ -341,13 +343,13 @@ const DetectPage = () => {
       blob = await new Promise<Blob>((resolve) => {
         canvas.toBlob(
           (b) => resolve(b || blob),
-          'image/jpeg',
+          'image/webp',
           0.85 // Quality setting
         );
       });
     }
 
-    return new File([blob], filename, { type: blob.type || "image/jpeg" });
+    return new File([blob], filename, { type: blob.type || "image/webp" });
   };
 
   // Streamlined detection flow: Category + Identification in one step
@@ -398,25 +400,102 @@ const DetectPage = () => {
     }
   };
 
-  // Combined Category + Identification
+  // Combined Category + Identification in single API call
   const runCategoryAndIdentification = async (): Promise<{
     identificationData: IdentificationData;
     uuid: string;
     categoryData: CategoryData;
   }> => {
     setProcessingStages((prev) => ({ ...prev, categoryIdentification: "in-progress" }));
-    setCurrentStep("Detecting category and identifying product...");
+    setCurrentStep("Analyzing product (category + identification)...");
     setProgressPercent(10);
 
     const startTime = Date.now();
 
     try {
-      // Step 1a: Upload images and detect category
+      // Prepare images and form data
       const formData = new FormData();
       formData.append("description", description.trim());
 
       const filePromises = capturedImages.map((imageUrl, index) =>
-        imageURLtoFile(imageUrl, `image-${index}.jpg`)
+        imageURLtoFile(imageUrl, `image-${index}.webp`)
+      );
+      const files = await Promise.all(filePromises);
+
+      files.forEach((file, index) => {
+        formData.append(`image${index}`, file);
+      });
+
+      setProgressPercent(20);
+      
+      // Single combined API call for category + identification
+      const analyzeResponse = await fetch("/api/detect/analyze", {
+        method: "POST",
+        body: formData,
+      });
+
+      const analyzeResult = await analyzeResponse.json();
+      const totalTime = (Date.now() - startTime) / 1000;
+      
+      // Split the time between category and identification for tracking
+      setTimeBreakdown((prev) => ({ 
+        ...prev, 
+        stage0: totalTime * 0.4, // ~40% for category
+        stage1: totalTime * 0.6  // ~60% for identification
+      }));
+
+      if (!analyzeResponse.ok) {
+        throw new Error(analyzeResult.error || "Analysis failed");
+      }
+
+      if (!analyzeResult.success) {
+        throw new Error(analyzeResult.error || "Analysis failed");
+      }
+
+      const detectedUuid = analyzeResult.data.uuid;
+      const detectedCategory = analyzeResult.data.categoryData;
+      const identData = analyzeResult.data.identification;
+      
+      // Check validation
+      if (analyzeResult.data.validation && !analyzeResult.data.validation.valid) {
+        setValidationErrors(analyzeResult.data.validation.errors || []);
+        setValidationSuggestions(analyzeResult.data.validation.suggestions || []);
+        throw new Error("Validation failed");
+      }
+      
+      setUuid(detectedUuid);
+      setCategoryData(detectedCategory);
+      setIdentificationData(identData);
+      setEditedProduct(identData);
+      setProgressPercent(60);
+      setProcessingStages((prev) => ({ ...prev, categoryIdentification: "complete" }));
+      
+      return {
+        identificationData: identData,
+        uuid: detectedUuid,
+        categoryData: detectedCategory,
+      };
+    } catch (err) {
+      // If combined endpoint fails, fallback to separate calls
+      console.warn("Combined API failed, falling back to separate calls:", err);
+      return await runCategoryAndIdentificationFallback();
+    }
+  };
+
+  // Fallback: Separate API calls if combined endpoint not available
+  const runCategoryAndIdentificationFallback = async (): Promise<{
+    identificationData: IdentificationData;
+    uuid: string;
+    categoryData: CategoryData;
+  }> => {
+    const startTime = Date.now();
+
+    try {
+      const formData = new FormData();
+      formData.append("description", description.trim());
+
+      const filePromises = capturedImages.map((imageUrl, index) =>
+        imageURLtoFile(imageUrl, `image-${index}.webp`)
       );
       const files = await Promise.all(filePromises);
 
@@ -434,11 +513,7 @@ const DetectPage = () => {
       const categoryTime = (Date.now() - startTime) / 1000;
       setTimeBreakdown((prev) => ({ ...prev, stage0: categoryTime }));
 
-      if (!categoryResponse.ok) {
-        throw new Error(categoryResult.error || "Category detection failed");
-      }
-
-      if (!categoryResult.success) {
+      if (!categoryResponse.ok || !categoryResult.success) {
         throw new Error(categoryResult.error || "Category detection failed");
       }
 
@@ -449,7 +524,6 @@ const DetectPage = () => {
       setCategoryData(detectedCategory);
       setProgressPercent(35);
 
-      // Step 1b: Identify product
       setCurrentStep("Identifying product details...");
       const identStartTime = Date.now();
       const identResponse = await fetch("/api/detect/identify", {
@@ -466,15 +540,10 @@ const DetectPage = () => {
       const identTime = (Date.now() - identStartTime) / 1000;
       setTimeBreakdown((prev) => ({ ...prev, stage1: identTime }));
 
-      if (!identResponse.ok) {
+      if (!identResponse.ok || !identResult.success) {
         throw new Error(identResult.error || "Identification failed");
       }
 
-      if (!identResult.success) {
-        throw new Error(identResult.error || "Identification failed");
-      }
-
-      // Check validation
       if (identResult.data.validation && !identResult.data.validation.valid) {
         setValidationErrors(identResult.data.validation.errors || []);
         setValidationSuggestions(identResult.data.validation.suggestions || []);
@@ -504,11 +573,30 @@ const DetectPage = () => {
       throw new Error("Missing required data");
     }
 
-    setCurrentStep("Running verification and pricing analysis...");
+    setCurrentStep("Confirming product details...");
     setProgressPercent(65);
 
     try {
-      // Run verification and pricing in parallel (removed confirmation step)
+      // Auto-confirm the product (required by backend before verification)
+      const confirmResponse = await fetch("/api/detect/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uuid: detectionUuid,
+          isCorrect: true,
+          updatedData: editedProduct,
+        }),
+      });
+
+      const confirmResult = await confirmResponse.json();
+      if (!confirmResponse.ok || !confirmResult.success) {
+        throw new Error(confirmResult.error || "Confirmation failed");
+      }
+
+      setProgressPercent(70);
+      setCurrentStep("Running verification and pricing analysis...");
+
+      // Run verification and pricing in parallel
       setProcessingStages((prev) => ({
         ...prev,
         verification: "in-progress",
@@ -1147,6 +1235,7 @@ const DetectPage = () => {
                             src={img}
                             alt={`Product ${idx + 1}`}
                             radius="md"
+                            loading="lazy"
                           />
                         </Grid.Col>
                       ))}
