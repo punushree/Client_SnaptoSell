@@ -18,9 +18,6 @@ import {
   Textarea,
   NumberInput,
   Select,
-  MultiSelect,
-  Checkbox,
-  Radio,
   FileInput,
   Stepper,
   Card,
@@ -46,8 +43,6 @@ import {
   IconPackage,
   IconCurrencyDollar,
   IconInfoCircle,
-  IconTruck,
-  IconTag,
 } from "@tabler/icons-react";
 
 interface ListingImage {
