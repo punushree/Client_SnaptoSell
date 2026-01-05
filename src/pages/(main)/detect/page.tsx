@@ -165,6 +165,19 @@ const DetectPage = () => {
   );
   const [showRetryModal, setShowRetryModal] = useState(false);
 
+  // Progress tracking for streamlined flow
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [currentStep, setCurrentStep] = useState("");
+  const [processingStages, setProcessingStages] = useState<{
+    categoryIdentification: "pending" | "in-progress" | "complete" | "error";
+    verification: "pending" | "in-progress" | "complete" | "error";
+    pricing: "pending" | "in-progress" | "complete" | "error";
+  }>({
+    categoryIdentification: "pending",
+    verification: "pending",
+    pricing: "pending",
+  });
+
   // Start camera
   const startCamera = async (mode: "user" | "environment" = facingMode) => {
     try {
@@ -267,18 +280,17 @@ const DetectPage = () => {
     e.target.value = "";
   };
 
-  // Convert image URL to File object
+  // Convert image URL to File object with compression
   const imageURLtoFile = async (
     imageUrl: string,
     filename: string
   ): Promise<File> => {
+    let blob: Blob;
+
     if (imageUrl.startsWith("blob:")) {
       const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      return new File([blob], filename, { type: blob.type || "image/jpeg" });
-    }
-
-    if (imageUrl.startsWith("data:")) {
+      blob = await response.blob();
+    } else if (imageUrl.startsWith("data:")) {
       const arr = imageUrl.split(",");
       const mimeMatch = arr[0].match(/:(.*?);/);
       const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
@@ -291,21 +303,55 @@ const DetectPage = () => {
         while (n--) {
           u8arr[n] = bstr.charCodeAt(n);
         }
-        return new File([u8arr], filename, { type: mime });
+        blob = new Blob([u8arr], { type: mime });
       } catch (error) {
         const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        return new File([blob], filename, { type: blob.type || mime });
+        blob = await response.blob();
       }
+    } else {
+      const response = await fetch(imageUrl);
+      blob = await response.blob();
     }
 
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
+    // Compress image if it's too large (> 1MB)
+    if (blob.size > 1024 * 1024) {
+      const img = await createImageBitmap(blob);
+      const canvas = document.createElement('canvas');
+      
+      // Maintain aspect ratio but limit max dimension to 1920px
+      const maxDimension = 1920;
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = (height / width) * maxDimension;
+          width = maxDimension;
+        } else {
+          width = (width / height) * maxDimension;
+          height = maxDimension;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      
+      blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob(
+          (b) => resolve(b || blob),
+          'image/jpeg',
+          0.85 // Quality setting
+        );
+      });
+    }
+
     return new File([blob], filename, { type: blob.type || "image/jpeg" });
   };
 
-  // Step 1: Upload images and detect category
-  const handleCategoryDetection = async () => {
+  // Streamlined detection flow: Category + Identification in one step
+  const handleStreamlinedDetection = async () => {
     if (capturedImages.length < 1 || capturedImages.length > 5) {
       setError("Please upload between 1 and 5 images.");
       return;
@@ -313,10 +359,59 @@ const DetectPage = () => {
 
     setIsLoading(true);
     setError(null);
+    setActive(1); // Move to processing step
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    let identData: IdentificationData | null = null;
+    let detectionUuid: string | null = null;
+    let categoryInfo: CategoryData | null = null;
+
+    try {
+      // Step 1: Category Detection + Identification (0-60% progress)
+      const result = await runCategoryAndIdentification();
+      identData = result.identificationData;
+      detectionUuid = result.uuid;
+      categoryInfo = result.categoryData;
+
+      // Check confidence score - if < 80%, stop and show retry modal
+      if (identData && identData.confidence_score < 80) {
+        setError("Low confidence detection. Please upload clearer images.");
+        setShowRetryModal(true);
+        setIsLoading(false);
+        setActive(0); // Go back to upload
+        return;
+      }
+
+      // Step 2: Run Verification and Pricing in parallel (60-100% progress)
+      await runVerificationAndPricingParallel(detectionUuid, categoryInfo);
+
+      // All done - move to completion
+      setProgressPercent(100);
+      setCurrentStep("Analysis Complete!");
+      setActive(2); // Move to complete step
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      setActive(0); // Go back to upload step
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Combined Category + Identification
+  const runCategoryAndIdentification = async (): Promise<{
+    identificationData: IdentificationData;
+    uuid: string;
+    categoryData: CategoryData;
+  }> => {
+    setProcessingStages((prev) => ({ ...prev, categoryIdentification: "in-progress" }));
+    setCurrentStep("Detecting category and identifying product...");
+    setProgressPercent(10);
 
     const startTime = Date.now();
 
     try {
+      // Step 1a: Upload images and detect category
       const formData = new FormData();
       formData.append("description", description.trim());
 
@@ -329,202 +424,169 @@ const DetectPage = () => {
         formData.append(`image${index}`, file);
       });
 
-      const response = await fetch("/api/detect/category", {
+      setProgressPercent(20);
+      const categoryResponse = await fetch("/api/detect/category", {
         method: "POST",
         body: formData,
       });
 
-      const result = await response.json();
-      const executionTime = (Date.now() - startTime) / 1000;
+      const categoryResult = await categoryResponse.json();
+      const categoryTime = (Date.now() - startTime) / 1000;
+      setTimeBreakdown((prev) => ({ ...prev, stage0: categoryTime }));
 
-      // Track execution time
-      setTimeBreakdown((prev) => ({ ...prev, stage0: executionTime }));
-
-      if (!response.ok) {
-        throw new Error(result.error || "Category detection failed");
+      if (!categoryResponse.ok) {
+        throw new Error(categoryResult.error || "Category detection failed");
       }
 
-      if (result.success) {
-        setUuid(result.data.uuid);
-        setCategoryData(result.data.categoryData);
-        setActive(1); // Move to step 2
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        throw new Error(result.error || "Category detection failed");
+      if (!categoryResult.success) {
+        throw new Error(categoryResult.error || "Category detection failed");
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  // Step 2: Identify product
-  const handleIdentification = async () => {
-    if (!uuid || !categoryData) {
-      setError("Missing required data");
-      return;
-    }
+      const detectedUuid = categoryResult.data.uuid;
+      const detectedCategory = categoryResult.data.categoryData;
+      
+      setUuid(detectedUuid);
+      setCategoryData(detectedCategory);
+      setProgressPercent(35);
 
-    setIsLoading(true);
-    setError(null);
-    setValidationErrors([]);
-    setValidationSuggestions([]);
-
-    const startTime = Date.now();
-
-    try {
-      const response = await fetch("/api/detect/identify", {
+      // Step 1b: Identify product
+      setCurrentStep("Identifying product details...");
+      const identStartTime = Date.now();
+      const identResponse = await fetch("/api/detect/identify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          uuid,
-          category: categoryData.category,
+          uuid: detectedUuid,
+          category: detectedCategory.category,
           userText: description,
         }),
       });
 
-      const result = await response.json();
-      const executionTime = (Date.now() - startTime) / 1000;
+      const identResult = await identResponse.json();
+      const identTime = (Date.now() - identStartTime) / 1000;
+      setTimeBreakdown((prev) => ({ ...prev, stage1: identTime }));
 
-      // Track execution time
-      setTimeBreakdown((prev) => ({ ...prev, stage1: executionTime }));
-
-      if (!response.ok) {
-        throw new Error(result.error || "Identification failed");
+      if (!identResponse.ok) {
+        throw new Error(identResult.error || "Identification failed");
       }
 
-      if (result.success) {
-        const identData = result.data.identification;
-
-        // Check if validation data is included
-        if (result.data.validation && !result.data.validation.valid) {
-          // Show validation errors
-          setValidationErrors(result.data.validation.errors || []);
-          setValidationSuggestions(result.data.validation.suggestions || []);
-          setShowRetryModal(true);
-          return;
-        }
-
-        setIdentificationData(identData);
-        setEditedProduct(identData);
-
-        // All categories now go through the full flow
-        setActive(2); // Move to step 3 (review)
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        throw new Error(result.error || "Identification failed");
+      if (!identResult.success) {
+        throw new Error(identResult.error || "Identification failed");
       }
+
+      // Check validation
+      if (identResult.data.validation && !identResult.data.validation.valid) {
+        setValidationErrors(identResult.data.validation.errors || []);
+        setValidationSuggestions(identResult.data.validation.suggestions || []);
+        throw new Error("Validation failed");
+      }
+
+      const identData = identResult.data.identification;
+      setIdentificationData(identData);
+      setEditedProduct(identData);
+      setProgressPercent(60);
+      setProcessingStages((prev) => ({ ...prev, categoryIdentification: "complete" }));
+      
+      return {
+        identificationData: identData,
+        uuid: detectedUuid,
+        categoryData: detectedCategory,
+      };
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
+      setProcessingStages((prev) => ({ ...prev, categoryIdentification: "error" }));
+      throw err;
     }
   };
 
-  // Step 3: Verify product (optional for electronics)
-  const handleVerification = async () => {
-    if (!uuid || !categoryData) {
-      setError("Missing required data");
-      return;
+  // Run Verification and Pricing in parallel
+  const runVerificationAndPricingParallel = async (detectionUuid: string | null, categoryInfo: CategoryData | null) => {
+    if (!detectionUuid || !categoryInfo) {
+      throw new Error("Missing required data");
     }
 
-    setIsLoading(true);
-    setError(null);
-
-    const startTime = Date.now();
+    setCurrentStep("Running verification and pricing analysis...");
+    setProgressPercent(65);
 
     try {
-      const response = await fetch("/api/detect/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uuid,
-          category: categoryData.category,
+      // Run verification and pricing in parallel (removed confirmation step)
+      setProcessingStages((prev) => ({
+        ...prev,
+        verification: "in-progress",
+        pricing: "in-progress",
+      }));
+
+      const verifyStartTime = Date.now();
+      const pricingStartTime = Date.now();
+
+      const [verificationResult, pricingResult] = await Promise.all([
+        // Verification
+        fetch("/api/detect/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uuid: detectionUuid,
+            category: categoryInfo.category,
+          }),
+        }).then(async (res) => {
+          const data = await res.json();
+          const verifyTime = (Date.now() - verifyStartTime) / 1000;
+          setTimeBreakdown((prev) => ({ ...prev, stage2: verifyTime }));
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || "Verification failed");
+          }
+          return data;
         }),
-      });
 
-      const result = await response.json();
-      const executionTime = (Date.now() - startTime) / 1000;
-
-      // Track execution time
-      setTimeBreakdown((prev) => ({ ...prev, stage2: executionTime }));
-
-      if (!response.ok) {
-        throw new Error(result.error || "Verification failed");
-      }
-
-      if (result.success) {
-        setVerificationData(result.data.verification);
-        window.history.pushState({ step: 3 }, "", window.location.pathname);
-        setActive(3); // Move to verification results step
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        throw new Error(result.error || "Verification failed");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Step 3: Confirm and move to pricing
-  const handleConfirmation = async () => {
-    if (!uuid) {
-      setError("Missing UUID");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/detect/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uuid,
-          isCorrect: true,
-          updatedData: editedProduct,
+        // Pricing
+        fetch("/api/pricing/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uuid: detectionUuid }),
+        }).then(async (res) => {
+          const pricingTime = (Date.now() - pricingStartTime) / 1000;
+          setTimeBreakdown((prev) => ({ ...prev, stage3: pricingTime }));
+          
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            console.warn("Pricing API failed:", res.status, errorData);
+            return null;
+          }
+          
+          const data = await res.json();
+          console.log("Pricing data received:", data);
+          return data;
+        }).catch((error) => {
+          console.error("Pricing fetch error:", error);
+          return null;
         }),
-      });
+      ]);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Confirmation failed");
+      // Update verification state
+      if (verificationResult && verificationResult.success) {
+        setVerificationData(verificationResult.data.verification);
+        setProcessingStages((prev) => ({ ...prev, verification: "complete" }));
       }
 
-      if (result.success) {
-        // Move to pricing step for all categories
-        window.history.pushState(
-          { step: 4 },
-          "",
-          window.location.pathname
-        );
-        setActive(4); // Move to pricing step
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Update pricing state
+      if (pricingResult && pricingResult.success) {
+        console.log("Setting pricing data:", pricingResult);
+        const actualPricingData = pricingResult.data?.pricing || pricingResult.data || pricingResult;
+        setPricingData(actualPricingData);
+        setProcessingStages((prev) => ({ ...prev, pricing: "complete" }));
       } else {
-        throw new Error(result.error || "Confirmation failed");
+        console.warn("Pricing result is null or unsuccessful - pricing may not be available");
+        setProcessingStages((prev) => ({ ...prev, pricing: "error" }));
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  // Step 4: Handle pricing completion
-  const handlePricingComplete = () => {
-    // All categories complete at step 5
-    window.history.pushState(
-      { step: 5 },
-      "",
-      window.location.pathname
-    );
-    setActive(5); // Move to completion
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+      setProgressPercent(95);
+    } catch (err) {
+      setProcessingStages((prev) => ({
+        ...prev,
+        verification: "error",
+        pricing: "error",
+      }));
+      throw err;
+    }
   };
 
   const getCategoryIcon = (category: string) => {
@@ -548,6 +610,17 @@ const DetectPage = () => {
     setVerificationData(null);
     setEditedProduct({});
     setError(null);
+    setPricingData(null);
+    setProgressPercent(0);
+    setCurrentStep("");
+    setProcessingStages({
+      categoryIdentification: "pending",
+      verification: "pending",
+      pricing: "pending",
+    });
+    setValidationErrors([]);
+    setValidationSuggestions([]);
+    setTimeBreakdown({});
     stopCamera();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -651,20 +724,8 @@ const DetectPage = () => {
               icon={<IconCloudUpload size={20} />}
             />
             <Stepper.Step
-              label="Category"
-              icon={<IconPackage size={20} />}
-            />
-            <Stepper.Step
-              label="Identify"
+              label="Processing"
               icon={<IconSearch size={20} />}
-            />
-            <Stepper.Step
-              label="Verify"
-              icon={<IconShieldCheck size={20} />}
-            />
-            <Stepper.Step
-              label="Pricing"
-              icon={<IconCurrencyDollar size={20} />}
             />
             <Stepper.Step
               label="Complete"
@@ -939,721 +1000,128 @@ const DetectPage = () => {
                 <Group justify="flex-end">
                   <Button
                     rightSection={<IconArrowRight />}
-                    onClick={handleCategoryDetection}
+                    onClick={handleStreamlinedDetection}
                     loading={isLoading}
                     disabled={capturedImages.length === 0}
                   >
-                    Detect Category
+                    Start Analysis
                   </Button>
                 </Group>
               </Stack>
             </Paper>
           )}
 
-          {/* Step 1: Category */}
+          {/* Step 1: Processing */}
           {active === 1 && (
             <Paper shadow="sm" p="md" withBorder mt="md">
-              <Stack gap="md">
-                <Text fw={500}>Step 2: Category Detection Result</Text>
-
-                {categoryData && (
-                  <Card withBorder>
-                    <Group justify="apart" mb="md">
-                      <Group>
-                        {getCategoryIcon(categoryData.category)}
-                        <Text fw={600} size="lg">
-                          {categoryData.category.charAt(0).toUpperCase() +
-                            categoryData.category.slice(1)}
-                        </Text>
-                      </Group>
-                      <Badge color="green">
-                        {categoryData.confidence_score}% confident
-                      </Badge>
-                    </Group>
-                    <Text size="sm" c="dimmed" mb="xs">
-                      <strong>Detected as:</strong>{" "}
-                      {categoryData.detected_product_type}
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                      <strong>Reasoning:</strong> {categoryData.reasoning}
-                    </Text>
-                  </Card>
-                )}
-
-                <Group justify="space-between">
-                  <Button
-                    leftSection={<IconArrowLeft />}
-                    variant="light"
-                    onClick={() => setActive(0)}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    rightSection={<IconArrowRight />}
-                    onClick={handleIdentification}
-                    loading={isLoading}
-                  >
-                    Identify Product
-                  </Button>
-                </Group>
-              </Stack>
-            </Paper>
-          )}
-
-          {/* Step 2: Identify */}
-          {active === 2 && (
-            <Paper shadow="sm" p="md" withBorder mt="md">
-              <Stack gap="md">
-                <Text fw={500}>Step 3: Review & Edit Product Details</Text>
-
-                {identificationData && (
-                  <Card withBorder>
-                    <Group justify="apart" mb="md">
-                      <Text fw={600} size="lg">
-                        {identificationData.identified_product}
-                      </Text>
-                      <Badge color="blue">
-                        {identificationData.confidence_score}% confident
-                      </Badge>
-                    </Group>
-
-                    <Grid>
-                      {/* Core Fields */}
-                      <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <TextInput
-                          label="Product Name"
-                          value={editedProduct.identified_product || ""}
-                          onChange={(e) =>
-                            setEditedProduct({
-                              ...editedProduct,
-                              identified_product: e.target.value,
-                            })
-                          }
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <TextInput
-                          label="Brand"
-                          value={editedProduct.brand || ""}
-                          onChange={(e) =>
-                            setEditedProduct({
-                              ...editedProduct,
-                              brand: e.target.value,
-                            })
-                          }
-                        />
-                      </Grid.Col>
-
-                      <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <TextInput
-                          label="Model"
-                          value={editedProduct.model || ""}
-                          onChange={(e) =>
-                            setEditedProduct({
-                              ...editedProduct,
-                              model: e.target.value,
-                            })
-                          }
-                        />
-                      </Grid.Col>
-
-                      <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <TextInput
-                          label="Color"
-                          value={editedProduct.color_variants || ""}
-                          onChange={(e) =>
-                            setEditedProduct({
-                              ...editedProduct,
-                              color_variants: e.target.value,
-                            })
-                          }
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <Select
-                          label="Product Condition"
-                          placeholder="Select condition"
-                          value={editedProduct.product_condition || ""}
-                          onChange={(value) =>
-                            setEditedProduct({
-                              ...editedProduct,
-                              product_condition: value || "",
-                            })
-                          }
-                          data={[
-                            { value: "new", label: "New" },
-                            { value: "like new", label: "Like New" },
-                            { value: "good", label: "Good" },
-                            { value: "fair", label: "Fair" },
-                            { value: "poor", label: "Poor" },
-                          ]}
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <Select
-                          label="Condition Rating"
-                          value={editedProduct.condition_rating || ""}
-                          onChange={(value) =>
-                            setEditedProduct({
-                              ...editedProduct,
-                              condition_rating: value || "",
-                            })
-                          }
-                          data={
-                            categoryData?.category === "fashion"
-                              ? [
-                                  {
-                                    value: "NWT",
-                                    label: "NWT (New With Tags)",
-                                  },
-                                  {
-                                    value: "NWOT",
-                                    label: "NWOT (New Without Tags)",
-                                  },
-                                  { value: "like new", label: "Like New" },
-                                  {
-                                    value: "excellent pre-owned condition",
-                                    label: "Excellent Pre-Owned",
-                                  },
-                                  {
-                                    value: "very good pre-owned condition",
-                                    label: "Very Good Pre-Owned",
-                                  },
-                                  {
-                                    value: "good pre-owned condition",
-                                    label: "Good Pre-Owned",
-                                  },
-                                  {
-                                    value: "fair pre-owned condition",
-                                    label: "Fair Pre-Owned",
-                                  },
-                                  {
-                                    value: "poor condition",
-                                    label: "Poor Condition",
-                                  },
-                                ]
-                              : [
-                                  { value: "Excellent", label: "Excellent" },
-                                  { value: "Good", label: "Good" },
-                                  { value: "Fair", label: "Fair" },
-                                  { value: "Poor", label: "Poor" },
-                                ]
-                          }
-                          searchable
-                        />
-                      </Grid.Col>
-
-                      <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <TextInput
-                          label="Estimated Year"
-                          placeholder="e.g., 2023"
-                          value={editedProduct.estimated_year || ""}
-                          onChange={(e) =>
-                            setEditedProduct({
-                              ...editedProduct,
-                              estimated_year: e.target.value,
-                            })
-                          }
-                        />
-                      </Grid.Col>
-
-                      {/* Fashion-specific: Brand Tier */}
-                      {categoryData?.category === "fashion" && (
-                        <Grid.Col span={{ base: 12, sm: 6 }}>
-                          <Select
-                            label="Brand Tier"
-                            value={editedProduct.brand_tier || ""}
-                            onChange={(value) =>
-                              setEditedProduct({
-                                ...editedProduct,
-                                brand_tier: value || "",
-                              })
-                            }
-                            data={[
-                              {
-                                value: "ultra-luxury",
-                                label:
-                                  "💎 Ultra-Luxury (Hermès, Chanel, Louis Vuitton)",
-                              },
-                              {
-                                value: "luxury",
-                                label: "✨ Luxury (Gucci, Prada, Burberry)",
-                              },
-                              {
-                                value: "premium designer",
-                                label:
-                                  "🌟 Premium Designer (Ralph Lauren, Calvin Klein)",
-                              },
-                              {
-                                value: "contemporary",
-                                label: "Contemporary (Zara, H&M, Mango)",
-                              },
-                              {
-                                value: "athletic premium",
-                                label:
-                                  "Athletic Premium (Lululemon, Arc'teryx)",
-                              },
-                              {
-                                value: "athletic mainstream",
-                                label: "Athletic (Nike, Adidas, Puma)",
-                              },
-                              {
-                                value: "streetwear",
-                                label: "Streetwear (Supreme, Off-White)",
-                              },
-                              {
-                                value: "fast fashion",
-                                label: "Fast Fashion (Shein, Forever 21)",
-                              },
-                              { value: "vintage", label: "🕰️ Vintage" },
-                              { value: "unbranded", label: "Unbranded" },
-                            ]}
-                            searchable
-                          />
-                        </Grid.Col>
-                      )}
-
-                      {/* Electronics-specific: Carrier Lock Status */}
-                      {categoryData?.category === "electronics" && (
-                        <Grid.Col span={{ base: 12, sm: 6 }}>
-                          <Select
-                            label="Carrier Lock Status"
-                            value={editedProduct.carrier_lock_status || ""}
-                            onChange={(value) =>
-                              setEditedProduct({
-                                ...editedProduct,
-                                carrier_lock_status: value || "",
-                              })
-                            }
-                            data={[
-                              { value: "unlocked", label: "Unlocked" },
-                              { value: "locked", label: "Carrier Locked" },
-                              { value: "unknown", label: "Unknown" },
-                            ]}
-                          />
-                        </Grid.Col>
-                      )}
-
-                      {/* Dynamic Metadata Fields */}
-                      {Object.entries(identificationData)
-                        .filter(([key, value]) => {
-                          // Skip core fields and internal fields
-                          const skipFields = [
-                            "identified_product",
-                            "brand",
-                            "model",
-                            "color_variants",
-                            "condition_rating",
-                            "product_condition",
-                            "estimated_year",
-                            "short_description",
-                            "confidence_score",
-                            "uuid",
-                            "category",
-                            "status",
-                            "brand_tier",
-                            "carrier_lock_status", // Now handled as explicit selects
-                            "clarity_feedback",
-                            "possible_confusion",
-                            "image_text_match", // Validation fields
-                            "missing_details",
-                            "preliminary_authenticity",
-                            "extraction_notes", // Internal fields
-                          ];
-
-                          // Filter out empty values, null, undefined, and skip fields
-                          return (
-                            !skipFields.includes(key) &&
-                            value !== null &&
-                            value !== undefined &&
-                            value !== "" &&
-                            String(value).trim() !== ""
-                          );
-                        })
-                        .map(([key, value]) => {
-                          // Format field label (e.g., "material_composition" -> "Material Composition")
-                          const label = key
-                            .split("_")
-                            .map(
-                              (word) =>
-                                word.charAt(0).toUpperCase() + word.slice(1)
-                            )
-                            .join(" ");
-
-                          return (
-                            <Grid.Col key={key} span={{ base: 12, sm: 6 }}>
-                              <TextInput
-                                label={label}
-                                value={editedProduct[key] || ""}
-                                onChange={(e) =>
-                                  setEditedProduct({
-                                    ...editedProduct,
-                                    [key]: e.target.value,
-                                  })
-                                }
-                              />
-                            </Grid.Col>
-                          );
-                        })}
-
-                      <Grid.Col span={12}>
-                        <Textarea
-                          label="Description"
-                          value={editedProduct.short_description || ""}
-                          onChange={(e) =>
-                            setEditedProduct({
-                              ...editedProduct,
-                              short_description: e.target.value,
-                            })
-                          }
-                          rows={4}
-                        />
-                      </Grid.Col>
-                    </Grid>
-                  </Card>
-                )}
-
-                <Group justify="space-between">
-                  <Button
-                    leftSection={<IconArrowLeft />}
-                    variant="light"
-                    onClick={() => setActive(1)}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    rightSection={<IconArrowRight />}
-                    onClick={handleVerification}
-                    loading={isLoading}
-                    color="blue"
-                  >
-                    Continue to Verification
-                  </Button>
-                </Group>
-              </Stack>
-            </Paper>
-          )}
-
-          {/* Step 3: Verify */}
-          {active === 3 && (
-            <Paper shadow="sm" p="md" withBorder mt="md">
-              <Stack gap="md">
+              <Stack gap="lg">
                 <Group gap="xs">
-                  <IconShieldCheck size={24} />
-                  <Text fw={500} size="lg">
-                    Step 4: Product Authentication & Verification
+                  <Loader size="md" />
+                  <Text fw={600} size="lg">
+                    Analyzing Your Product...
                   </Text>
                 </Group>
 
-                {isLoading && (
-                  <Stack align="center" gap="md" py="xl">
-                    <Loader size="lg" />
-                    <Stack gap="xs" align="center">
-                      <Text size="sm" c="dimmed">
-                        Verifying product authenticity via web search...
-                      </Text>
-                      <Text size="xs" c="dimmed">
-                        🔍 Checking brand authenticity and detecting
-                        counterfeits...
-                      </Text>
-                    </Stack>
-                  </Stack>
-                )}
-
-                {verificationData && !isLoading && (
-                  <Stack gap="md">
-                    {/* Status Badge with Summary */}
-                    <Card withBorder p="md">
-                      <Group justify="space-between" mb="md">
-                        <Group gap="xs">
-                          {verificationData.authenticity_status
-                            ?.toLowerCase()
-                            .includes("authentic") ||
-                          verificationData.authenticity_status
-                            ?.toLowerCase()
-                            .includes("verified") ? (
-                            <IconCheck size={24} color="green" />
-                          ) : (
-                            <IconAlertCircle size={24} color="orange" />
-                          )}
-                          <Text fw={600} size="lg">
-                            {verificationData.authenticity_status}
-                          </Text>
-                        </Group>
-                        <Badge
-                          size="lg"
-                          color={
-                            verificationData.verification_confidence >= 80
-                              ? "green"
-                              : verificationData.verification_confidence >= 60
-                                ? "yellow"
-                                : "orange"
-                          }
-                        >
-                          Confidence: {verificationData.verification_confidence}
-                          %
-                        </Badge>
-                      </Group>
-
-                      <Text size="sm" c="dimmed">
-                        {verificationData.authentication_summary ||
-                          verificationData.verification_summary}
-                      </Text>
-                    </Card>
-
-                    {/* Brand Tier Context (Fashion Only) */}
-                    {categoryData?.category === "fashion" &&
-                      identificationData?.brand_tier && (
-                        <Alert
-                          color={
-                            identificationData.brand_tier === "ultra-luxury" ||
-                            identificationData.brand_tier === "luxury"
-                              ? "yellow"
-                              : "blue"
-                          }
-                          icon={
-                            identificationData.brand_tier === "ultra-luxury"
-                              ? "💎"
-                              : identificationData.brand_tier === "luxury"
-                                ? "✨"
-                                : identificationData.brand_tier === "vintage"
-                                  ? "🕰️"
-                                  : identificationData.brand_tier ===
-                                      "fast fashion"
-                                    ? "👕"
-                                    : "🌟"
-                          }
-                        >
-                          <Text fw={600} size="sm">
-                            {identificationData.brand_tier === "ultra-luxury" &&
-                              "This is an ultra-luxury brand. Authentication is critical due to high counterfeit risk."}
-                            {identificationData.brand_tier === "luxury" &&
-                              "This is a luxury brand. Careful authentication recommended."}
-                            {identificationData.brand_tier ===
-                              "premium designer" &&
-                              "This is a premium designer brand. Authentication adds value."}
-                            {identificationData.brand_tier === "fast fashion" &&
-                              "This is a fast fashion brand. Focus on condition over authenticity."}
-                            {identificationData.brand_tier === "vintage" &&
-                              "This is a vintage item. Age and condition are key factors."}
-                            {identificationData.brand_tier === "unbranded" &&
-                              "This is an unbranded item. Authentication not applicable."}
-                            {![
-                              "ultra-luxury",
-                              "luxury",
-                              "premium designer",
-                              "fast fashion",
-                              "vintage",
-                              "unbranded",
-                            ].includes(identificationData.brand_tier) &&
-                              "Brand tier provides context for pricing and authentication."}
-                          </Text>
-                        </Alert>
-                      )}
-
-                    {/* Authentic Markers Found */}
-                    {verificationData.authentic_markers_found &&
-                      verificationData.authentic_markers_found.length > 0 && (
-                        <Card withBorder p="md">
-                          <Group gap="xs" mb="sm">
-                            <IconCheck size={18} color="green" />
-                            <Text fw={600} c="green">
-                              ✅ Authentic Markers:
-                            </Text>
-                          </Group>
-                          <Stack gap="xs">
-                            {verificationData.authentic_markers_found.map(
-                              (marker: string, idx: number) => (
-                                <Text key={idx} size="sm" pl="md">
-                                  • {marker}
-                                </Text>
-                              )
-                            )}
-                          </Stack>
-                        </Card>
-                      )}
-
-                    {/* Red Flags Found */}
-                    {verificationData.red_flags_found &&
-                      verificationData.red_flags_found.length > 0 &&
-                      verificationData.red_flags_found[0]?.toLowerCase() !==
-                        "none" && (
-                        <Alert
-                          icon={<IconAlertCircle />}
-                          color="red"
-                          title="⚠️ Red Flags Detected"
-                        >
-                          <Stack gap="xs">
-                            {verificationData.red_flags_found.map(
-                              (flag: string, idx: number) => (
-                                <Text key={idx} size="sm">
-                                  • {flag}
-                                </Text>
-                              )
-                            )}
-                          </Stack>
-                        </Alert>
-                      )}
-
-                    {/* Legacy authenticity warnings (fallback) */}
-                    {!verificationData.red_flags_found &&
-                      verificationData.authenticity_warnings &&
-                      verificationData.authenticity_warnings.length > 0 && (
-                        <Alert icon={<IconAlertCircle />} color="yellow">
-                          <Stack gap="xs">
-                            <Text fw={600}>Warnings:</Text>
-                            {verificationData.authenticity_warnings.map(
-                              (warning: string, idx: number) => (
-                                <Text key={idx} size="sm">
-                                  • {warning}
-                                </Text>
-                              )
-                            )}
-                          </Stack>
-                        </Alert>
-                      )}
-
-                    {/* Brand Authentication Info */}
-                    <Alert color="blue" icon={<IconAlertCircle />}>
-                      <Text size="sm" fw={500}>
-                        Brand authentication helps ensure accurate pricing.
-                      </Text>
-                    </Alert>
-
-                    {/* Official Sources Checked (Collapsible) */}
-                    {verificationData.official_sources_checked &&
-                      verificationData.official_sources_checked.length > 0 && (
-                        <Card withBorder p="md">
-                          <details>
-                            <summary
-                              style={{ cursor: "pointer", fontWeight: 500 }}
-                            >
-                              📚 Sources Checked
-                            </summary>
-                            <Stack gap="xs" mt="sm">
-                              {verificationData.official_sources_checked.map(
-                                (source: string, idx: number) => (
-                                  <Text key={idx} size="xs" c="dimmed" pl="md">
-                                    • {source}
-                                  </Text>
-                                )
-                              )}
-                            </Stack>
-                          </details>
-                        </Card>
-                      )}
-
-                    {/* Recommendations */}
-                    {verificationData.recommendations && (
-                      <Alert color="yellow" icon={<IconAlertCircle />}>
-                        <Text size="sm" fw={500} mb="xs">
-                          💡 Recommendations:
-                        </Text>
-                        <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-                          {verificationData.recommendations}
-                        </Text>
-                      </Alert>
-                    )}
-
-                    {/* Additional Details (if available) */}
-                    {verificationData.authenticity_details && (
-                      <Card withBorder p="md">
-                        <Text fw={500} mb="sm">
-                          Authenticity Details:
-                        </Text>
-                        <Text
-                          size="sm"
-                          c="dimmed"
-                          style={{ whiteSpace: "pre-wrap" }}
-                        >
-                          {verificationData.authenticity_details}
-                        </Text>
-                      </Card>
-                    )}
-
-                    {/* Specs Match Badge (for electronics - legacy) */}
-                    {verificationData.specs_match !== undefined && (
-                      <Group>
-                        <Badge
-                          color={verificationData.specs_match ? "green" : "red"}
-                        >
-                          Specs{" "}
-                          {verificationData.specs_match ? "Match" : "Mismatch"}
-                        </Badge>
-                      </Group>
-                    )}
-                  </Stack>
-                )}
-
-                <Group justify="space-between" mt="md">
-                  <Button
-                    leftSection={<IconArrowLeft />}
-                    variant="light"
-                    onClick={() => setActive(2)}
-                    disabled={isLoading}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    rightSection={<IconArrowRight />}
-                    onClick={handleConfirmation}
-                    loading={isLoading}
+                {/* Progress Bar */}
+                <Stack gap="xs">
+                  <Group justify="space-between">
+                    <Text size="sm" fw={500}>
+                      {currentStep || "Starting analysis..."}
+                    </Text>
+                    <Text size="sm" fw={500} c="blue">
+                      {progressPercent}%
+                    </Text>
+                  </Group>
+                  <Progress
+                    value={progressPercent}
+                    size="xl"
+                    radius="md"
+                    animated
                     color="blue"
-                  >
-                    Continue to Pricing
-                  </Button>
-                </Group>
-              </Stack>
-            </Paper>
-          )}
-
-          {/* Step 4: Pricing */}
-          {active === 4 && (
-            <Paper shadow="sm" p="md" withBorder mt="md">
-              <Stack gap="md">
-                <Group gap="xs">
-                  <IconCurrencyDollar size={24} />
-                  <Text fw={500} size="lg">
-                    Step 5: Market Price Analysis
-                  </Text>
-                </Group>
-
-                {uuid && categoryData ? (
-                  <AIMarketplacePricing
-                    uuid={uuid}
-                    category={categoryData.category}
-                    onPricingComplete={(data) => {
-                      setPricingData(data);
-                    }}
                   />
-                ) : (
-                  <Alert icon={<IconAlertCircle />} color="yellow">
-                    Unable to fetch pricing data. Product UUID not found.
-                  </Alert>
-                )}
+                </Stack>
 
-                <Group justify="space-between" mt="lg">
-                  <Button
-                    leftSection={<IconArrowLeft />}
-                    variant="light"
-                    onClick={() => setActive(3)}
-                  >
-                    Back to Verification
-                  </Button>
-                  <Button
-                    rightSection={<IconCheck />}
-                    onClick={handlePricingComplete}
-                    color="green"
-                  >
-                    Complete Analysis
-                  </Button>
-                </Group>
+                {/* Processing Stages */}
+                <Stack gap="sm">
+                  {/* Category & Identification */}
+                  <Group justify="space-between">
+                    <Group gap="xs">
+                      {processingStages.categoryIdentification === "complete" ? (
+                        <IconCheck size={20} color="green" />
+                      ) : processingStages.categoryIdentification === "in-progress" ? (
+                        <Loader size={20} />
+                      ) : processingStages.categoryIdentification === "error" ? (
+                        <IconX size={20} color="red" />
+                      ) : (
+                        <IconPackage size={20} style={{ opacity: 0.3 }} />
+                      )}
+                      <Text size="sm">Category Detection & Identification</Text>
+                    </Group>
+                    {processingStages.categoryIdentification === "complete" && (
+                      <Badge color="green" size="sm">Complete</Badge>
+                    )}
+                    {processingStages.categoryIdentification === "in-progress" && (
+                      <Badge color="blue" size="sm">Processing...</Badge>
+                    )}
+                  </Group>
+
+                  {/* Verification */}
+                  <Group justify="space-between">
+                    <Group gap="xs">
+                      {processingStages.verification === "complete" ? (
+                        <IconCheck size={20} color="green" />
+                      ) : processingStages.verification === "in-progress" ? (
+                        <Loader size={20} />
+                      ) : processingStages.verification === "error" ? (
+                        <IconX size={20} color="red" />
+                      ) : (
+                        <IconShieldCheck size={20} style={{ opacity: 0.3 }} />
+                      )}
+                      <Text size="sm">Product Verification</Text>
+                    </Group>
+                    {processingStages.verification === "complete" && (
+                      <Badge color="green" size="sm">Complete</Badge>
+                    )}
+                    {processingStages.verification === "in-progress" && (
+                      <Badge color="blue" size="sm">Processing...</Badge>
+                    )}
+                  </Group>
+
+                  {/* Pricing */}
+                  <Group justify="space-between">
+                    <Group gap="xs">
+                      {processingStages.pricing === "complete" ? (
+                        <IconCheck size={20} color="green" />
+                      ) : processingStages.pricing === "in-progress" ? (
+                        <Loader size={20} />
+                      ) : processingStages.pricing === "error" ? (
+                        <IconX size={20} color="red" />
+                      ) : (
+                        <IconCurrencyDollar size={20} style={{ opacity: 0.3 }} />
+                      )}
+                      <Text size="sm">Market Price Analysis</Text>
+                    </Group>
+                    {processingStages.pricing === "complete" && (
+                      <Badge color="green" size="sm">Complete</Badge>
+                    )}
+                    {processingStages.pricing === "in-progress" && (
+                      <Badge color="blue" size="sm">Processing...</Badge>
+                    )}
+                  </Group>
+                </Stack>
+
+                {/* Info Alert */}
+                <Alert color="blue" icon={<IconAlertCircle />}>
+                  <Text size="sm">
+                    Please wait while we analyze your product. This may take a few moments.
+                  </Text>
+                </Alert>
               </Stack>
             </Paper>
           )}
 
-          {/* Completion Step: Step 5 for all categories */}
-          {active === 5 && (
+          {/* Completion Step: Step 2 - Complete Analysis */}
+          {active === 2 && (
             <Paper shadow="sm" p="md" withBorder mt="md">
               <Stack gap="md">
                 <Group justify="center">
@@ -1948,7 +1416,7 @@ const DetectPage = () => {
                 )}
 
                 {/* AI Marketplace Pricing */}
-                {pricingData && (
+                {pricingData ? (
                   <Card withBorder>
                     <Text fw={600} size="lg" mb="md">
                       Market Pricing
@@ -2128,6 +1596,17 @@ const DetectPage = () => {
                         <Text size="sm">{pricingData.seasonal_pricing_guidance}</Text>
                       </Alert>
                     )}
+                  </Card>
+                ) : (
+                  <Card withBorder>
+                    <Text fw={600} size="lg" mb="md">
+                      Market Pricing
+                    </Text>
+                    <Alert color="yellow" icon={<IconAlertCircle />}>
+                      <Text size="sm">
+                        Pricing data is being fetched. If this persists, pricing analysis may not be available for this product.
+                      </Text>
+                    </Alert>
                   </Card>
                 )}
 
