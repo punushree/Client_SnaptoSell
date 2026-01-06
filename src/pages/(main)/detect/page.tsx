@@ -1710,7 +1710,7 @@ const DetectPage = () => {
                 )}
 
                 {/* Execution Time */}
-                {Object.keys(timeBreakdown).length > 0 && (
+                {/* {Object.keys(timeBreakdown).length > 0 && (
                   <Card withBorder>
                     <Text fw={600} size="sm" mb="md">
                       ⏱️ Execution Time Breakdown
@@ -1768,7 +1768,7 @@ const DetectPage = () => {
                       </Group>
                     </Stack>
                   </Card>
-                )}
+                )} */}
 
                 {/* Navigation buttons */}
                 <Group justify="center" gap="md">
